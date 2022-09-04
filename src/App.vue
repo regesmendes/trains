@@ -1,23 +1,47 @@
 <template>
-    <div>
-        <button @click="addFollower">+</button>
-        <button @click="delFollower">-</button>
-        <div>
-            <label for="currentPath">Current Path: </label>
-            <select name="currentPath" id="currentPath" v-model="selectedPath">
-                <option
-                    v-for="(path, index) in paths"
-                    :value="index"
-                    :key="index"
+    <div class="flex-column">
+        <button @click="newTrainForm = !newTrainForm">New Train</button>
+        <div class="flex-column" v-show="newTrainForm">
+            <div>New Train</div>
+            <div>
+                <label for="compositionLength">Length: </label>
+                <input
+                    type="number"
+                    id="compositionLength"
+                    v-model="newTrain.length"
+                />
+            </div>
+            <div>
+                <label for="selectedTrack">Track: </label>
+                <select
+                    name="selectedTrack"
+                    id="selectedTrack"
+                    v-model="selectedTrack"
                 >
-                    {{ path.name }}
-                </option>
-            </select>
+                    <option
+                        v-for="(path, index) in paths"
+                        :value="index"
+                        :key="index"
+                    >
+                        {{ path.name }}
+                    </option>
+                </select>
+            </div>
+            <button @click="addTrain">Add</button>
         </div>
         <button @click="viewJsonPaths = !viewJsonPaths">JSON Paths</button>
+        <div v-show="viewJsonPaths" class="flex-column">
+            <label>Current Paths</label>
+            <div>{{ JSON.stringify(paths) }}</div>
+            <button @click="drawPaths">Draw Paths</button>
+            <br />
+            <label>Import JSON</label>
+            <textarea v-model="jsonPaths"></textarea>
+            <button @click="importPaths">Import</button>
+        </div>
         <button @click="pathEditor = !pathEditor">Path Editor</button>
         <div v-show="pathEditor" class="path-editor">
-            <div v-if="!newPath.isCreating" class="new-start">
+            <div v-if="!newPath.isCreating" class="flex-column">
                 <div>
                     <label for="newPathX">x: </label>
                     <input type="number" id="newPathX" v-model="newPath.x" />
@@ -40,7 +64,7 @@
                 </div>
                 <div>
                     <label>Straight</label>
-                    <div class="new-start">
+                    <div class="flex-column">
                         <div>
                             <label for="straightX">x: </label>
                             <input
@@ -65,7 +89,7 @@
                 </div>
                 <div>
                     <label>Ellipse</label>
-                    <div class="new-start">
+                    <div class="flex-column">
                         <div>
                             <label for="ellipseX">X Radius: </label>
                             <input
@@ -138,13 +162,25 @@
                 </div>
             </div>
         </div>
-        <div v-show="viewJsonPaths" class="new-start">
-            <label>Current Paths</label>
-            <div>{{ JSON.stringify(paths) }}</div>
-            <br />
-            <label>Import JSON</label>
-            <textarea v-model="jsonPaths"></textarea>
-            <button @click="importPaths">Import</button>
+        <button @click="trainEditor = !trainEditor">Train Editor</button>
+        <div v-show="trainEditor" class="flex-column">
+            <label for="selectedTrain">Select a train</label>
+            <select v-model="selectedTrain" id="selectedTrain">
+                <option
+                    v-for="(train, index) in trains"
+                    :value="index"
+                    :key="index"
+                >
+                    Train {{ index }}
+                </option>
+            </select>
+            <input
+                type="number"
+                v-model="trainSpeed"
+                @change="changeTrainSpeed"
+            />
+            <button @click="stopTrain">Stop Train</button>
+            <button @click="removeTrain">Remove</button>
         </div>
     </div>
 </template>
@@ -168,7 +204,7 @@ export default {
                 scene: {
                     preload: function () {
                         this.load.image("red", "./red.png");
-                        // this.load.json('path1', './path1.json');
+                        // this.load.json("track1", "./track1.json");
                     },
                     create: function () {
                         scene = this;
@@ -179,16 +215,23 @@ export default {
                 },
             },
             game: null,
-            followers: [],
-            selectedPath: false,
+            trains: [],
+            selectedTrack: false,
+            selectedTrain: -1,
             paths: [],
             pathEditor: false,
+            newTrainForm: false,
+            trainEditor: false,
+            trainSpeed: 10,
             newPath: {
                 x: 200,
                 y: 200,
                 isCreating: false,
                 path: this.emptyJasonPath(),
                 name: "",
+            },
+            newTrain: {
+                length: 5,
             },
             straight: {
                 x: 0,
@@ -211,56 +254,241 @@ export default {
     },
     mounted() {
         this.game = new global.Phaser.Game(this.config);
+        this.paths = [
+            {
+                type: "Path",
+                x: 200,
+                y: 200,
+                autoClose: true,
+                curves: [
+                    {
+                        type: "EllipseCurve",
+                        x: 700,
+                        y: 250,
+                        xRadius: 150,
+                        yRadius: 150,
+                        startAngle: 270,
+                        endAngle: 0,
+                        clockwise: false,
+                        rotation: 0,
+                    },
+                    {
+                        type: "LineCurve",
+                        points: [850, 249.99999999999997, 850, 550],
+                    },
+                    {
+                        type: "EllipseCurve",
+                        x: 700,
+                        y: 550,
+                        xRadius: 150,
+                        yRadius: 150,
+                        startAngle: 0,
+                        endAngle: 180,
+                        clockwise: false,
+                        rotation: 0,
+                    },
+                    {
+                        type: "EllipseCurve",
+                        x: 400,
+                        y: 550,
+                        xRadius: 150,
+                        yRadius: 150,
+                        startAngle: 0,
+                        endAngle: 270,
+                        clockwise: true,
+                        rotation: 0,
+                    },
+                    {
+                        type: "LineCurve",
+                        points: [400, 400, 300, 400],
+                    },
+                    {
+                        type: "EllipseCurve",
+                        x: 300,
+                        y: 250,
+                        xRadius: 150,
+                        yRadius: 150,
+                        startAngle: 90,
+                        endAngle: 270,
+                        clockwise: false,
+                        rotation: 0,
+                    },
+                    {
+                        type: "LineCurve",
+                        points: [300, 100, 700, 100],
+                    },
+                ],
+            },
+            {
+                type: "Path",
+                x: 200,
+                y: 200,
+                autoClose: true,
+                curves: [
+                    {
+                        type: "LineCurve",
+                        points: [700, 100, 800, 100],
+                    },
+                    {
+                        type: "EllipseCurve",
+                        x: 800,
+                        y: 250,
+                        xRadius: 150,
+                        yRadius: 150,
+                        startAngle: 270,
+                        endAngle: 0,
+                        clockwise: false,
+                        rotation: 0,
+                    },
+                    {
+                        type: "LineCurve",
+                        points: [950, 249.99999999999997, 950, 650],
+                    },
+                    {
+                        type: "EllipseCurve",
+                        x: 800,
+                        y: 650,
+                        xRadius: 150,
+                        yRadius: 150,
+                        startAngle: 0,
+                        endAngle: 90,
+                        clockwise: false,
+                        rotation: 0,
+                    },
+                    {
+                        type: "LineCurve",
+                        points: [800, 800, 200, 800],
+                    },
+                    {
+                        type: "EllipseCurve",
+                        x: 200,
+                        y: 650,
+                        xRadius: 150,
+                        yRadius: 150,
+                        startAngle: 90,
+                        endAngle: 180,
+                        clockwise: false,
+                        rotation: 0,
+                    },
+                    {
+                        type: "LineCurve",
+                        points: [50, 650, 50, 250],
+                    },
+                    {
+                        type: "EllipseCurve",
+                        x: 200,
+                        y: 250,
+                        xRadius: 150,
+                        yRadius: 150,
+                        startAngle: 180,
+                        endAngle: 270,
+                        clockwise: false,
+                        rotation: 0,
+                    },
+                    {
+                        type: "LineCurve",
+                        points: [199.99999999999997, 100, 700, 100],
+                    },
+                ],
+            },
+        ];
+        this.paths.forEach((path, index) => {
+            let pathObj = new global.Phaser.Curves.Path(path);
+            pathObj.name = "P" + index;
+            this.paths[index] = pathObj;
+        });
     },
     methods: {
-        delFollower: function () {
-            if (this.followers.length) {
-                let f = this.followers.pop();
-                f.destroy();
+        removeTrain: function () {
+            if (this.trains.length && this.trains[this.selectedTrain]) {
+                this.trains[this.selectedTrain].forEach((car) => car.destroy());
+                if (this.selectedTrain == 0) {
+                    this.trains = this.trains.slice(1);
+                } else if (this.selectedTrain == this.trains.length - 1) {
+                    this.trains = this.trains.slice(0, -1);
+                } else {
+                    this.trains = [
+                        ...this.trains.slice(0, this.selectedTrain),
+                        ...this.trains.slice(this.selectedTrain + 1),
+                    ];
+                }
             }
         },
 
-        addFollower: function () {
-            if (
-                this.paths.length &&
-                this.selectedPath >= 0 &&
-                this.paths[this.selectedPath]
-            ) {
-                let follower = factory.follower(
-                    this.paths[this.selectedPath],
-                    0,
-                    0,
-                    "red"
+        addTrain: function () {
+            if (this.paths.length && this.paths[this.selectedTrack]) {
+                let train = [];
+                for (let i = 0; i < this.newTrain.length; i++) {
+                    let car = factory.follower(
+                        this.paths[this.selectedTrack],
+                        0,
+                        0,
+                        "red"
+                    );
+                    car.startFollow({
+                        positionOnPath: true,
+                        // ease: "Sine.easeInOut",
+                        ease: "Linear",
+                        duration: 8000,
+                        yoyo: false,
+                        repeat: -1,
+                        delay: i * 50,
+                    });
+                    train.push(car);
+                }
+                this.trains.push(train);
+            }
+        },
+
+        stopTrain: function () {
+            if (this.trains.length && this.trains[this.selectedTrain]) {
+                this.trains[this.selectedTrain].forEach((car) =>
+                    car.pauseFollow()
                 );
-                console.log(follower)
-                follower.startFollow({
-                    positionOnPath: true,
-                    // ease: "Sine.easeInOut",
-                    ease: "Linear",
-                    duration: 8000,
-                    yoyo: false,
-                    repeat: -1,
-                });
-                this.followers.push(follower);
+            }
+        },
+
+        changeTrainSpeed: function () {
+            if (this.trains.length && this.trains[this.selectedTrain]) {
+                if (this.trainSpeed === 0) {
+                    this.stopTrain();
+                } else {
+                    let speed = (10 / this.trainSpeed) * 8000;
+                    this.trains[this.selectedTrain].forEach((car, index) => {
+                        if (car.pathTween.paused) {
+                            car.startFollow({
+                                positionOnPath: true,
+                                // ease: "Sine.easeInOut",
+                                ease: "Linear",
+                                duration: speed,
+                                yoyo: false,
+                                repeat: -1,
+                                delay: index * 50,
+                            });
+                        } else {
+                            car.pathTween.data[0].duration = speed;
+                        }
+                    });
+                }
             }
         },
 
         changePath: function () {
-            // this.selectedPath = !this.selectedPath;
+            // this.selectedTrack = !this.selectedTrack;
         },
 
         updateScene: function () {
-            // this.followers.forEach((follower) => {
+            // this.trains.forEach((follower) => {
             //     if (
             //         follower.x >= 690 &&
             //         follower.x <= 700 &&
             //         follower.y >= 99 &&
             //         follower.y <= 101
             //     ) {
-            //         if (this.selectedPath && follower.path.name === "p2") {
+            //         if (this.selectedTrack && follower.path.name === "p2") {
             //             follower.delay = 0;
             //             follower.setPath(this.paths[0]);
-            //         } else if (!this.selectedPath && follower.path.name === "p1") {
+            //         } else if (!this.selectedTrack && follower.path.name === "p1") {
             //             follower.delay = 0;
             //             follower.setPath(this.paths[1]);
             //         }
@@ -382,7 +610,7 @@ export default {
             this.paths = [];
             JSON.parse(this.jsonPaths).forEach((path, index) => {
                 let pathObj = new global.Phaser.Curves.Path(path);
-                pathObj.name = "P" + index
+                pathObj.name = "P" + index;
                 this.paths.push(pathObj);
             });
             this.drawPaths();

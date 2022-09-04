@@ -10,11 +10,11 @@ body > canvas {
     display: flex;
 }
 
-.new-start {
+.flex-column {
     display: flex;
     flex-flow: column;
 }
 
-.new-start > div {
+.flex-column > * {
     display: flex;
 }
