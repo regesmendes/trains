@@ -1,0 +1,20 @@
+body {
+    display: flex;
+}
+
+body > canvas {
+    margin-left: 300px;
+}
+
+.path-editor {
+    display: flex;
+}
+
+.new-start {
+    display: flex;
+    flex-flow: column;
+}
+
+.new-start > div {
+    display: flex;
+}
