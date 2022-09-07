@@ -162,25 +162,34 @@
                 </div>
             </div>
         </div>
-        <button @click="trainEditor = !trainEditor">Train Editor</button>
-        <div v-show="trainEditor" class="flex-column">
-            <label for="selectedTrain">Select a train</label>
-            <select v-model="selectedTrain" id="selectedTrain">
-                <option
-                    v-for="(train, index) in trains"
-                    :value="index"
-                    :key="index"
+        <button @click="trainControls = !trainControls">Train Controls</button>
+        <div v-show="trainControls" class="flex-column">
+            <div
+                v-for="(train, index) in trains"
+                :key="index"
+                class="flex-column"
+            >
+                <div>Train {{ index }}</div>
+                <div>Line {{ train.getLineName() }}</div>
+                <button @click="changeTrack(train)">Change Track</button>
+                <div>
+                    Speed:
+                    <input
+                        type="number"
+                        v-model="train.speed"
+                        min="0"
+                        max="10"
+                    />
+                </div>
+                <button @click="train.reverseMotion()">Reverse</button>
+                <button @click="removeTrain(index)">Remove</button>
+                <button
+                    @click="selectedTrain = index"
+                    v-show="selectedTrain != index"
                 >
-                    Train {{ index }}
-                </option>
-            </select>
-            <input
-                type="number"
-                v-model="trainSpeed"
-                @change="changeTrainSpeed"
-            />
-            <button @click="stopTrain">Stop Train</button>
-            <button @click="removeTrain">Remove</button>
+                    Highlight
+                </button>
+            </div>
         </div>
     </div>
 </template>
@@ -189,6 +198,195 @@
 var graphics = null;
 var factory = null;
 var scene = null;
+
+class Train {
+    speed = 0;
+    autoPilot = 0;
+    reverse = false;
+    priority = false;
+    failedTry = 0;
+    cars = [];
+    points = [];
+    paths = [];
+    locator = 0;
+    carOffset = 0; // requires callibration
+    reached = true; // starts at rest
+    cuttOff = -1;
+
+    carPosition = function (n) {
+        let offset = n * this.carOffset;
+        let position =
+            n > 0
+                ? (this.locator < offset ? this.points.length : 0) +
+                  (this.locator - offset)
+                : this.locator;
+        return this.points[position];
+    };
+
+    resumeMovement = function (scene) {
+        if (this.autoPilot > this.speed) {
+            this.speed++;
+            scene.time.addEvent({
+                delay: 1000,
+                callback: this.resumeMovement,
+                callbackScope: this,
+                args: [scene],
+            });
+        } else {
+            this.autoPilot = 0;
+            this.failedTry = 0;
+        }
+    };
+
+    reverseMotion = function () {
+        this.reverse = !this.reverse;
+    };
+
+    moveLocator = function () {
+        this.locator = this.reverse
+            ? this.locator > 0
+                ? --this.locator
+                : this.points.length - 1
+            : ++this.locator % this.points.length;
+
+        if (this.cuttOff > -1 && this.cuttOff < this.locator) {
+            this.cuttOff = -1;
+            this.removePath(this.paths[0].name);
+        }
+    };
+
+    startMoving = function (scene) {
+        if (this.cars.length) {
+            if (this.speed && this.reached) {
+                this.reached = false;
+                let speedRate = 25; // px/s for each speed point
+                let speed = this.speed * speedRate;
+                this.moveLocator();
+
+                this.cars.forEach((car, index) => {
+                    let target = this.carPosition(index);
+                    scene.physics.moveToObject(car, target, speed);
+                });
+            } else {
+                scene.time.addEvent({
+                    delay: 1000, // up to 1s warm-up to get it moving ;)
+                    callback: this.startMoving,
+                    callbackScope: this,
+                    args: [scene],
+                });
+            }
+        }
+    };
+
+    destroyTrain = function () {
+        this.speed = 0;
+        this.cars.forEach((car) => car.destroy());
+    };
+
+    addPath = function (path, cut = true) {
+        if (!path.points) {
+            path.points = path.getSpacedPoints(500).slice(0, 500);
+        }
+        if (cut) {
+            this.cuttOff =
+                this.points.length + this.cars.length * (this.carOffset + 3);
+        }
+        this.paths.push(path);
+        this.points = this.paths.reduce((l, p) => [...l, ...p.points], []);
+    };
+
+    removePath = function (name) {
+        let bookmark = this.carPosition(0);
+        this.paths = this.paths.filter((p) => p.name !== name);
+        this.points = this.paths.reduce((l, p) => [...l, ...p.points], []);
+        this.points.forEach((p, i) => {
+            if (p.x === bookmark.x && p.y === bookmark.y) {
+                this.locator = i;
+            }
+        });
+    };
+
+    callibrateCarOffset = function () {
+        for (let d = 0; d < 20; ) {
+            this.carOffset++;
+            let car1 = this.carPosition(1);
+            let car2 = this.carPosition(2);
+            d = global.Phaser.Math.Distance.Between(
+                car1.x,
+                car1.y,
+                car2.x,
+                car2.y
+            );
+        }
+    };
+
+    addCars = function (scene, qty = 1) {
+        this.callibrateCarOffset();
+        for (let i = 0; this.cars.length < qty; i++) {
+            let position = this.carPosition(i);
+            let car = scene.physics.add.image(position.x, position.y, "red");
+            this.cars.push(car);
+        }
+    };
+
+    handleCollision = function (scene) {
+        let delay = 1500;
+        this.autoPilot = Math.max(this.autoPilot, Math.min(this.speed, 7));
+        this.failedTry++;
+        if (!this.priority && this.failedTry % 5 === 1) {
+            this.reverseMotion();
+        } else {
+            if (this.priority) {
+                this.speed = 0;
+            }
+            delay *= 4;
+        }
+
+        scene.time.addEvent({
+            delay: delay,
+            callback: this.resumeMovement,
+            callbackScope: this,
+            args: [scene],
+        });
+    };
+
+    setupCollisions = function (scene, trainList, deep = true) {
+        trainList.forEach((train) => {
+            train.cars.forEach((car) => {
+                scene.physics.add.overlap(
+                    this.cars[0],
+                    car,
+                    function () {
+                        this.handleCollision(scene);
+                    },
+                    null,
+                    this
+                );
+
+                scene.physics.add.overlap(
+                    this.cars[this.cars.length - 1],
+                    car,
+                    function () {
+                        this.handleCollision(scene);
+                    },
+                    null,
+                    this
+                );
+            });
+            if (deep) {
+                train.setupCollisions(scene, [this], false);
+            }
+        });
+    };
+
+    setPriority = function (priority) {
+        this.priority = priority;
+    };
+
+    getLineName = function () {
+        return this.paths.map((p) => p.name).join(" - ");
+    };
+}
 
 export default {
     name: "App",
@@ -201,6 +399,10 @@ export default {
                 // backgroundColor: '#2d2d2d',
                 backgroundColor: "#c6c6c6",
                 parent: "phaser-example",
+                physics: {
+                    default: "arcade",
+                    arcade: { debug: false },
+                },
                 scene: {
                     preload: function () {
                         this.load.image("red", "./red.png");
@@ -221,8 +423,8 @@ export default {
             paths: [],
             pathEditor: false,
             newTrainForm: false,
-            trainEditor: false,
-            trainSpeed: 10,
+            trainControls: false,
+            trainSpeed: 0,
             newPath: {
                 x: 200,
                 y: 200,
@@ -394,106 +596,98 @@ export default {
         ];
         this.paths.forEach((path, index) => {
             let pathObj = new global.Phaser.Curves.Path(path);
-            pathObj.name = "P" + index;
+            pathObj.name = "T" + index;
             this.paths[index] = pathObj;
         });
     },
+    computed: {
+        allCars() {
+            return this.trains.reduce((l, t) => [...l, ...t.cars], []);
+        },
+    },
     methods: {
-        removeTrain: function () {
-            if (this.trains.length && this.trains[this.selectedTrain]) {
-                this.trains[this.selectedTrain].forEach((car) => car.destroy());
-                if (this.selectedTrain == 0) {
-                    this.trains = this.trains.slice(1);
-                } else if (this.selectedTrain == this.trains.length - 1) {
-                    this.trains = this.trains.slice(0, -1);
-                } else {
-                    this.trains = [
-                        ...this.trains.slice(0, this.selectedTrain),
-                        ...this.trains.slice(this.selectedTrain + 1),
-                    ];
-                }
+        removeTrain: function (n) {
+            if (this.trains.length && this.trains[n]) {
+                this.trains[n].destroyTrain();
+
+                scene.time.addEvent({
+                    delay: 500,
+                    callback: function () {
+                        if (n == 0) {
+                            this.trains = this.trains.slice(1);
+                        } else if (n == this.trains.length - 1) {
+                            this.trains = this.trains.slice(0, -1);
+                        } else {
+                            this.trains = [
+                                ...this.trains.slice(0, n),
+                                ...this.trains.slice(n + 1),
+                            ];
+                        }
+                    },
+                    callbackScope: this,
+                });
             }
         },
 
         addTrain: function () {
             if (this.paths.length && this.paths[this.selectedTrack]) {
-                let train = [];
-                for (let i = 0; i < this.newTrain.length; i++) {
-                    let car = factory.follower(
-                        this.paths[this.selectedTrack],
-                        0,
-                        0,
-                        "red"
-                    );
-                    car.startFollow({
-                        positionOnPath: true,
-                        // ease: "Sine.easeInOut",
-                        ease: "Linear",
-                        duration: 8000,
-                        yoyo: false,
-                        repeat: -1,
-                        delay: i * 50,
-                    });
-                    train.push(car);
+                let train = new Train();
+                train.addPath(this.paths[this.selectedTrack], false);
+                train.addCars(scene, this.newTrain.length);
+                train.setPriority(this.trains.length < 1);
+                if (this.trains.length) {
+                    train.setupCollisions(scene, this.trains);
                 }
+
+                train.startMoving(scene); // default speed is 0
                 this.trains.push(train);
+                this.selectedTrain = this.trains.length - 1;
             }
         },
 
-        stopTrain: function () {
-            if (this.trains.length && this.trains[this.selectedTrain]) {
-                this.trains[this.selectedTrain].forEach((car) =>
-                    car.pauseFollow()
-                );
-            }
-        },
+        changeTrack: function (train) {
+            let names = train.paths.map((p) => p.name).join(",");
+            let available = this.paths.filter((p) => names.indexOf(p.name));
 
-        changeTrainSpeed: function () {
-            if (this.trains.length && this.trains[this.selectedTrain]) {
-                if (this.trainSpeed === 0) {
-                    this.stopTrain();
-                } else {
-                    let speed = (10 / this.trainSpeed) * 8000;
-                    this.trains[this.selectedTrain].forEach((car, index) => {
-                        if (car.pathTween.paused) {
-                            car.startFollow({
-                                positionOnPath: true,
-                                // ease: "Sine.easeInOut",
-                                ease: "Linear",
-                                duration: speed,
-                                yoyo: false,
-                                repeat: -1,
-                                delay: index * 50,
-                            });
-                        } else {
-                            car.pathTween.data[0].duration = speed;
-                        }
-                    });
-                }
+            if (available.length) {
+                train.addPath(available[0]);
             }
-        },
-
-        changePath: function () {
-            // this.selectedTrack = !this.selectedTrack;
         },
 
         updateScene: function () {
-            // this.trains.forEach((follower) => {
-            //     if (
-            //         follower.x >= 690 &&
-            //         follower.x <= 700 &&
-            //         follower.y >= 99 &&
-            //         follower.y <= 101
-            //     ) {
-            //         if (this.selectedTrack && follower.path.name === "p2") {
-            //             follower.delay = 0;
-            //             follower.setPath(this.paths[0]);
-            //         } else if (!this.selectedTrack && follower.path.name === "p1") {
-            //             follower.delay = 0;
-            //             follower.setPath(this.paths[1]);
-            //         }
-            //     }
-            // });
+            this.trains.forEach((train) => {
+                train.cars.forEach((car, index) => {
+                    if (car.body && car.body.speed) {
+                        let target = train.carPosition(index);
+                        let distance = global.Phaser.Math.Distance.Between(
+                            car.x,
+                            car.y,
+                            target.x,
+                            target.y
+                        );
+
+                        // distance tolerance, the faster it moves, the more tolerance is required.
+                        if (distance < train.speed / 3 + 1) {
+                            car.body.reset(target.x, target.y);
+                            train.reached = true;
+                        }
+                    }
+                });
+
+                if (train.speed && train.reached) {
+                    train.startMoving(scene);
+                }
+            });
+
+            if (this.trains.length) {
+                global.Phaser.Actions.SetAlpha(this.allCars, 0.5);
+                if (this.trains[this.selectedTrain]) {
+                    global.Phaser.Actions.SetAlpha(
+                        this.trains[this.selectedTrain].cars,
+                        1
+                    );
+                }
+            }
         },
 
         emptyJasonPath: function (x = 200, y = 200) {
@@ -501,7 +695,7 @@ export default {
                 type: "Path",
                 x: x,
                 y: y,
-                autoClose: true,
+                autoClose: false,
                 curves: [],
             };
         },
