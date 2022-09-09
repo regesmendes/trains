@@ -4,6 +4,7 @@
         "x": 200,
         "y": 200,
         "autoClose": true,
+        "name": "Track 01",
         "curves": [
             {
                 "type": "EllipseCurve",
@@ -83,6 +84,7 @@
         "x": 200,
         "y": 200,
         "autoClose": true,
+        "name": "Track 02",
         "curves": [
             {
                 "type": "LineCurve",
@@ -171,6 +173,104 @@
                     100,
                     700,
                     100
+                ]
+            }
+        ]
+    },
+    {
+        "type": "Path",
+        "x": 200,
+        "y": 200,
+        "autoClose": false,
+        "name": "Track 03",
+        "curves": [
+            {
+                "type": "LineCurve",
+                "points": [
+                    700,
+                    70,
+                    800,
+                    70
+                ]
+            },
+            {
+                "type": "EllipseCurve",
+                "x": 800,
+                "y": 250,
+                "xRadius": 180,
+                "yRadius": 180,
+                "startAngle": 270,
+                "endAngle": 0,
+                "clockwise": false,
+                "rotation": 0
+            },
+            {
+                "type": "LineCurve",
+                "points": [
+                    980,
+                    249.99999999999994,
+                    980,
+                    650
+                ]
+            },
+            {
+                "type": "EllipseCurve",
+                "x": 800,
+                "y": 650,
+                "xRadius": 180,
+                "yRadius": 180,
+                "startAngle": 0,
+                "endAngle": 90,
+                "clockwise": false,
+                "rotation": 0
+            },
+            {
+                "type": "LineCurve",
+                "points": [
+                    800,
+                    830,
+                    200,
+                    830
+                ]
+            },
+            {
+                "type": "EllipseCurve",
+                "x": 200,
+                "y": 650,
+                "xRadius": 180,
+                "yRadius": 180,
+                "startAngle": 90,
+                "endAngle": 180,
+                "clockwise": false,
+                "rotation": 0
+            },
+            {
+                "type": "LineCurve",
+                "points": [
+                    20,
+                    650,
+                    20,
+                    250
+                ]
+            },
+            {
+                "type": "EllipseCurve",
+                "x": 200,
+                "y": 249.99999999999997,
+                "xRadius": 180,
+                "yRadius": 180,
+                "startAngle": 180,
+                "endAngle": 270,
+                "clockwise": false,
+                "rotation": 0
+            },
+            {
+                "type": "LineCurve",
+                "points": [
+                    199.99999999999997,
+                    69.99999999999997,
+                    700,
+                    70
                 ]
             }
         ]

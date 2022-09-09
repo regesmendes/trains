@@ -66,12 +66,22 @@
                     <label>Straight</label>
                     <div class="flex-column">
                         <div>
+                            <label for="straightAngle">Angle: </label>
+                            <input
+                                type="number"
+                                id="straightAngle"
+                                v-model="straight.angle"
+                            />
+                        </div>
+                        <div>
                             <label for="straightX">x: </label>
                             <input
                                 type="number"
                                 id="straightX"
                                 v-model="straight.x"
                             />
+                            <button @click="tanXrd">tg \</button>
+                            <button @click="tanXru">tg /</button>
                         </div>
                         <div>
                             <label for="straightY">y: </label>
@@ -80,6 +90,8 @@
                                 id="straightY"
                                 v-model="straight.y"
                             />
+                            <button @click="tanYru">tg /</button>
+                            <button @click="tanYrd">tg \</button>
                         </div>
                         <div>
                             <button @click="drawLine">Draw</button>
@@ -129,24 +141,6 @@
                                 id="ellipseClockwise"
                                 v-model="ellipse.clockwise"
                             />
-                        </div>
-                        <div>
-                            <label for="ellipseRotation">Rotation: </label>
-                            <input
-                                type="number"
-                                id="ellipseRotation"
-                                v-model="ellipse.rotation"
-                            />
-                        </div>
-                        <div>
-                            <label for="ellipseOffset">Offset: </label>
-                            <select v-model="ellipse.offset" id="ellipseOffset">
-                                <option value="0">None</option>
-                                <option value="+x">right</option>
-                                <option value="-x">left</option>
-                                <option value="+y">up</option>
-                                <option value="-y">down</option>
-                            </select>
                         </div>
                         <div>
                             <button @click="drawEllipse">Draw</button>
@@ -209,7 +203,7 @@ class Train {
     points = [];
     paths = [];
     locator = 0;
-    carOffset = 0; // requires callibration
+    carOffset = 1; // requires callibration
     reached = true; // starts at rest
     cuttOff = -1;
 
@@ -252,6 +246,7 @@ class Train {
         if (this.cuttOff > -1 && this.cuttOff < this.locator) {
             this.cuttOff = -1;
             this.removePath(this.paths[0].name);
+            this.callibrateCarOffset();
         }
     };
 
@@ -307,6 +302,7 @@ class Train {
     };
 
     callibrateCarOffset = function () {
+        this.carOffset = 1;
         for (let d = 0; d < 20; ) {
             this.carOffset++;
             let car1 = this.carPosition(1);
@@ -431,6 +427,7 @@ export default {
                 isCreating: false,
                 path: this.emptyJasonPath(),
                 name: "",
+                showCurrentPaths: true,
             },
             newTrain: {
                 length: 5,
@@ -438,6 +435,7 @@ export default {
             straight: {
                 x: 0,
                 y: 0,
+                angle: 0,
             },
             ellipse: {
                 xRadius: 100,
@@ -446,7 +444,6 @@ export default {
                 endAngle: 90,
                 clockwise: true,
                 rotation: 0,
-                offset: "0",
             },
             pathCursor: null,
             positionHistory: [],
@@ -462,6 +459,7 @@ export default {
                 x: 200,
                 y: 200,
                 autoClose: true,
+                name: "Track 01",
                 curves: [
                     {
                         type: "EllipseCurve",
@@ -526,6 +524,7 @@ export default {
                 x: 200,
                 y: 200,
                 autoClose: true,
+                name: "Track 02",
                 curves: [
                     {
                         type: "LineCurve",
@@ -593,10 +592,85 @@ export default {
                     },
                 ],
             },
+            {
+                type: "Path",
+                x: 200,
+                y: 200,
+                autoClose: false,
+                name: "Track 03",
+                curves: [
+                    {
+                        type: "LineCurve",
+                        points: [700, 70, 800, 70],
+                    },
+                    {
+                        type: "EllipseCurve",
+                        x: 800,
+                        y: 250,
+                        xRadius: 180,
+                        yRadius: 180,
+                        startAngle: 270,
+                        endAngle: 0,
+                        clockwise: false,
+                        rotation: 0,
+                    },
+                    {
+                        type: "LineCurve",
+                        points: [980, 249.99999999999994, 980, 650],
+                    },
+                    {
+                        type: "EllipseCurve",
+                        x: 800,
+                        y: 650,
+                        xRadius: 180,
+                        yRadius: 180,
+                        startAngle: 0,
+                        endAngle: 90,
+                        clockwise: false,
+                        rotation: 0,
+                    },
+                    {
+                        type: "LineCurve",
+                        points: [800, 830, 200, 830],
+                    },
+                    {
+                        type: "EllipseCurve",
+                        x: 200,
+                        y: 650,
+                        xRadius: 180,
+                        yRadius: 180,
+                        startAngle: 90,
+                        endAngle: 180,
+                        clockwise: false,
+                        rotation: 0,
+                    },
+                    {
+                        type: "LineCurve",
+                        points: [20, 650, 20, 250],
+                    },
+                    {
+                        type: "EllipseCurve",
+                        x: 200,
+                        y: 249.99999999999997,
+                        xRadius: 180,
+                        yRadius: 180,
+                        startAngle: 180,
+                        endAngle: 270,
+                        clockwise: false,
+                        rotation: 0,
+                    },
+                    {
+                        type: "LineCurve",
+                        points: [
+                            199.99999999999997, 69.99999999999997, 700, 70,
+                        ],
+                    },
+                ],
+            },
         ];
         this.paths.forEach((path, index) => {
             let pathObj = new global.Phaser.Curves.Path(path);
-            pathObj.name = "T" + index;
+            pathObj.name = path.name ? path.name : "T" + index;
             this.paths[index] = pathObj;
         });
     },
@@ -708,13 +782,14 @@ export default {
                 isCreating: false,
                 path: path,
             };
-            graphics.clear();
+            this.resetPathEditorView();
         },
 
         createPath: function () {
             this.newPath.isCreating = true;
             graphics.lineStyle(2, 0xff0000, 1);
             this.positionCursor();
+            this.setStraightPosition();
         },
 
         drawLine: function () {
@@ -736,19 +811,36 @@ export default {
             this.positionCursor();
         },
 
+        tanYru: function () {
+            let alpha = (Math.abs(this.straight.angle) * Math.PI) / 180;
+            let newY = Math.tan(alpha) * (this.newPath.x - this.straight.x);
+            this.straight.y = parseInt(this.newPath.y + newY);
+        },
+
+        tanYrd: function () {
+            let alpha = (Math.abs(this.straight.angle) * Math.PI) / 180;
+            let newY = Math.tan(alpha) * (this.straight.x - this.newPath.x);
+            this.straight.y = parseInt(this.newPath.y + newY);
+        },
+
+        tanXru: function () {
+            let alpha = (Math.abs(this.straight.angle) * Math.PI) / 180;
+            let newX = (this.newPath.y - this.straight.y) / Math.tan(alpha);
+            this.straight.x = parseInt(this.newPath.x + newX);
+        },
+
+        tanXrd: function () {
+            let alpha = (Math.abs(this.straight.angle) * Math.PI) / 180;
+            let newX = (this.straight.y - this.newPath.y) / Math.tan(alpha);
+            this.straight.x = parseInt(this.newPath.x + newX);
+        },
+
         drawEllipse: function () {
+            let alpha = (this.ellipse.startAngle * Math.PI) / 180;
             let newX =
-                this.ellipse.offset === "-x"
-                    ? this.newPath.x - this.ellipse.xRadius
-                    : this.ellipse.offset === "+x"
-                    ? this.newPath.x + this.ellipse.xRadius
-                    : this.newPath.x;
+                Math.cos(alpha) * this.ellipse.xRadius * -1 + this.newPath.x;
             let newY =
-                this.ellipse.offset === "+y"
-                    ? this.newPath.y - this.ellipse.yRadius
-                    : this.ellipse.offset === "-y"
-                    ? this.newPath.y + this.ellipse.yRadius
-                    : this.newPath.y;
+                Math.sin(alpha) * this.ellipse.yRadius * -1 + this.newPath.y;
             let node = {
                 type: "EllipseCurve",
                 x: newX,
@@ -762,12 +854,14 @@ export default {
             };
             this.positionHistory.push([this.newPath.x, this.newPath.y]);
             this.newPath.path.curves.push(node);
+
             let path = new global.Phaser.Curves.Path(this.newPath.path);
             path.draw(graphics);
             let position = path.getEndPoint();
             this.newPath.x = position.x;
             this.newPath.y = position.y;
             this.positionCursor();
+            this.setStraightPosition();
         },
 
         savePath: function () {
@@ -804,7 +898,7 @@ export default {
             this.paths = [];
             JSON.parse(this.jsonPaths).forEach((path, index) => {
                 let pathObj = new global.Phaser.Curves.Path(path);
-                pathObj.name = "P" + index;
+                pathObj.name = path.name ? path.name : "T" + index;
                 this.paths.push(pathObj);
             });
             this.drawPaths();
@@ -818,10 +912,24 @@ export default {
                 this.newPath.y = position[1];
             }
 
+            this.resetPathEditorView();
+        },
+
+        resetPathEditorView: function () {
             let path = new global.Phaser.Curves.Path(this.newPath.path);
-            graphics.clear();
+            if (this.newPath.showCurrentPaths) {
+                this.drawPaths();
+            } else {
+                graphics.clear();
+            }
+            graphics.lineStyle(2, 0xff0000, 1);
             path.draw(graphics);
             this.positionCursor();
+        },
+
+        setStraightPosition: function () {
+            this.straight.x = this.newPath.x;
+            this.straight.y = this.newPath.y;
         },
 
         positionCursor: function () {
