@@ -32,12 +32,12 @@
         <button @click="viewJsonPaths = !viewJsonPaths">JSON Paths</button>
         <div v-show="viewJsonPaths" class="flex-column">
             <label>Current Paths</label>
-            <div>{{ JSON.stringify(paths) }}</div>
+            <div>{{ JSON.stringify({'paths': paths, 'semaphores': semaphores.map(s => s.detectors.map(d => ({x: d.x, y: d.y})))}) }}</div>
             <button @click="drawPaths">Draw Paths</button>
             <br />
             <label>Import JSON</label>
             <textarea v-model="jsonPaths"></textarea>
-            <button @click="importPaths">Import</button>
+            <button @click="importJSON">Import</button>
         </div>
         <button @click="pathEditor = !pathEditor">Path Editor</button>
         <div v-show="pathEditor" class="path-editor">
@@ -154,6 +154,23 @@
                     <button @click="savePath">Done</button>
                     <button @click="cancelPath">Cancel</button>
                 </div>
+                <div>
+                    <label>Semaphores</label>
+                    <div v-for="(semaphore, index) in semaphores" :key="index" class="flex-column">
+                        <div class="flex-column">
+                            <label>
+                                Semaphore {{ index }}
+                            </label>
+                            <button @click="removeSemaphore(index)">Remove Semaphore</button>
+                        </div>
+                        <label v-for="(detector, index) in semaphore.detectors" :key="index">
+                            Detector {{ index }}: {{ detector.x }}, {{ detector.y }}
+                        </label>
+                        <button @click="newDetector(index)">New Detector</button>
+                        <div>Status: {{ semaphore.isOpen() ? 'open' : 'closed' }}</div>
+                    </div>
+                    <button @click="newSemaphore">New Semaphore</button>
+                </div>
             </div>
         </div>
         <button @click="trainControls = !trainControls">Train Controls</button>
@@ -165,6 +182,7 @@
             >
                 <div>Train {{ index }}</div>
                 <div>Line {{ train.getLineName() }}</div>
+                <button @click="train.debug=!train.debug">Debug Movement</button>
                 <button @click="changeTrack(train)">Change Track</button>
                 <div>
                     Speed:
@@ -194,6 +212,7 @@ var factory = null;
 var scene = null;
 
 class Train {
+    id = 0;
     speed = 0;
     autoPilot = 0;
     reverse = false;
@@ -204,8 +223,9 @@ class Train {
     paths = [];
     locator = 0;
     carOffset = 1; // requires callibration
-    reached = true; // starts at rest
     cuttOff = -1;
+    debug = false;
+    reached = true;
 
     carPosition = function (n) {
         let offset = n * this.carOffset;
@@ -243,33 +263,59 @@ class Train {
                 : this.points.length - 1
             : ++this.locator % this.points.length;
 
-        if (this.cuttOff > -1 && this.cuttOff < this.locator) {
+        if (
+            this.recallibrateCarOffset > -1 &&
+            ((this.reverse && this.recallibrateCarOffset > this.locator) ||
+                this.recallibrateCarOffset < this.locator)
+        ) {
+            this.recallibrateCarOffset = -1;
+            this.callibrateCarOffset();
+        }
+        if (
+            this.cuttOff > -1 &&
+            ((this.reverse && this.cuttOff > this.locator) ||
+                this.cuttOff < this.locator)
+        ) {
             this.cuttOff = -1;
             this.removePath(this.paths[0].name);
-            this.callibrateCarOffset();
         }
     };
 
     startMoving = function (scene) {
-        if (this.cars.length) {
-            if (this.speed && this.reached) {
-                this.reached = false;
-                let speedRate = 25; // px/s for each speed point
-                let speed = this.speed * speedRate;
-                this.moveLocator();
+        let speedRate = 15; // px/s for each speed point
+        let speed = this.speed * speedRate;
 
-                this.cars.forEach((car, index) => {
-                    let target = this.carPosition(index);
-                    scene.physics.moveToObject(car, target, speed);
-                });
-            } else {
-                scene.time.addEvent({
-                    delay: 1000, // up to 1s warm-up to get it moving ;)
-                    callback: this.startMoving,
-                    callbackScope: this,
-                    args: [scene],
-                });
+        this.cars.forEach((car, index) => {
+            if (car.body) {
+                let target = this.carPosition(index);
+                let distance = global.Phaser.Math.Distance.Between(
+                    car.x,
+                    car.y,
+                    target.x,
+                    target.y
+                );
+                // distance tolerance, the faster it moves, the more tolerance is required.
+                let arrived = distance < this.speed / 3 + 1;
+
+                if (arrived) {
+                    if (car.body.speed) {
+                        if (this.debug) console.log('car reset: ', index, target.x, target.y)
+                        car.body.reset(target.x, target.y);
+                        if (index === 0) this.reached = true;
+                    }
+                } else {
+                    // if (this.speed && !car.body.speed) {
+                        if (index === 0) this.reached = false;
+                        if (this.debug) console.log('moving car ', index, ' to ', target.x, target.y)
+                        scene.physics.moveToObject(car, target, speed);
+                    // }
+                }
             }
+        });
+
+        if (this.speed && this.reached) {
+            if (this.debug) console.log('moving locator...')
+            this.moveLocator();
         }
     };
 
@@ -279,9 +325,22 @@ class Train {
     };
 
     addPath = function (path, cut = true) {
-        if (!path.points) {
-            path.points = path.getSpacedPoints(500).slice(0, 500);
+        let pieces = 50;
+        let distance = 0;
+        const min = 4;
+        const max = 5;
+
+        while (distance < min || distance > max) {
+            path.points = path.getSpacedPoints(pieces).slice(0, pieces);
+            distance = global.Phaser.Math.Distance.Between(
+                path.points[0].x,
+                path.points[0].y,
+                path.points[1].x,
+                path.points[1].y
+            );
+            pieces *= distance / ((min + max) / 2);
         }
+        this.recallibrateCarOffset = this.points.length + 2;
         if (cut) {
             this.cuttOff =
                 this.points.length + this.cars.length * (this.carOffset + 3);
@@ -302,7 +361,7 @@ class Train {
     };
 
     callibrateCarOffset = function () {
-        this.carOffset = 1;
+        this.carOffset = 0;
         for (let d = 0; d < 20; ) {
             this.carOffset++;
             let car1 = this.carPosition(1);
@@ -318,6 +377,7 @@ class Train {
 
     addCars = function (scene, qty = 1) {
         this.callibrateCarOffset();
+        this.locator = qty * this.carOffset;
         for (let i = 0; this.cars.length < qty; i++) {
             let position = this.carPosition(i);
             let car = scene.physics.add.image(position.x, position.y, "red");
@@ -335,7 +395,7 @@ class Train {
             if (this.priority) {
                 this.speed = 0;
             }
-            delay *= 4;
+            delay *= this.failedTry * 4;
         }
 
         scene.time.addEvent({
@@ -344,6 +404,20 @@ class Train {
             callbackScope: this,
             args: [scene],
         });
+    };
+
+    handleSemaphore = function (semaphore, carList) {
+        let isThisTrain = carList.filter(
+            car => this.cars.filter(car2 => car.gameObject.body.center.x === car2.body.center.x && car.gameObject.body.center.y === car2.body.center.y).length
+        ).length
+
+        if (isThisTrain) {
+            // console.log('handling ', semaphore.train, semaphore, semaphoreGroup)
+            semaphore.handleCollision(this);
+        } else if (semaphore.train === this.id) {
+            // console.log('releasing ', semaphore.train, carList)
+            semaphore.release();
+        }
     };
 
     setupCollisions = function (scene, trainList, deep = true) {
@@ -384,6 +458,61 @@ class Train {
     };
 }
 
+class Semaphore {
+    train = 0;
+    releasing = false;
+    scene = null;
+    detectors = [];
+
+    constructor(scene, x, y) {
+        let detector = {
+            x: x,
+            y: y,
+            detector: scene.add.circle(x, y, 10).setStrokeStyle(2, 0xffff00)
+        }
+        this.scene = scene;
+        this.detectors.push(detector);
+    }
+
+    newDetector = function (x, y) {
+        let detector = {
+            x: x,
+            y: y,
+            detector: this.scene.add.circle(x, y, 10).setStrokeStyle(2, 0xffff00)
+        }
+        this.detectors.push(detector);
+    }
+
+    isOpen = function () {
+        return !this.train
+    }
+
+    handleCollision = function (train) {
+        if (!this.train) {
+            this.train = train.id
+        } else if (this.train !== train.id) {
+            console.log('blocking', train.id)
+            train.autoPilot = Math.max(train.autoPilot, Math.min(train.speed, 7));
+            train.speed = 0;
+        }
+    }
+
+    release = function() {
+        if (!this.releasing) {
+            this.releasing = true;
+            this.scene.time.addEvent({
+                delay: 3000,
+                callback: function () {
+                    console.log('cleaning', this.train)
+                    this.train = 0;
+                    this.releasing = false;
+                },
+                callbackScope: this,
+            });
+        }
+    }
+}
+
 export default {
     name: "App",
     data: function () {
@@ -414,7 +543,8 @@ export default {
             },
             game: null,
             trains: [],
-            selectedTrack: false,
+            semaphores: [],
+            selectedTrack: 0,
             selectedTrain: -1,
             paths: [],
             pathEditor: false,
@@ -452,8 +582,52 @@ export default {
         };
     },
     mounted() {
+        let self = this;
         this.game = new global.Phaser.Game(this.config);
+
+        setTimeout(function () {
+            scene.input.on('pointerdown', function (pointer) {
+                self.pointerClicked(pointer.x, pointer.y);
+            });
+            self.drawPaths();
+        }, 1000);
+
         this.paths = [
+            {
+                type: "Path",
+                x: 200,
+                y: 200,
+                autoClose: false,
+                name: "Depot 01",
+                curves: [
+                    {
+                        type: "LineCurve",
+                        points: [250, 150, 520, 150],
+                    },
+                    {
+                        type: "EllipseCurve",
+                        x: 520,
+                        y: -30,
+                        xRadius: 180,
+                        yRadius: 180,
+                        startAngle: 90,
+                        endAngle: 59.99999999999999,
+                        clockwise: true,
+                        rotation: 0,
+                    },
+                    {
+                        type: "EllipseCurve",
+                        x: 700.0000000000001,
+                        y: 281.76914536239786,
+                        xRadius: 180,
+                        yRadius: 180,
+                        startAngle: 239.99999999999997,
+                        endAngle: 270,
+                        clockwise: false,
+                        rotation: 0,
+                    },
+                ],
+            },
             {
                 type: "Path",
                 x: 200,
@@ -703,9 +877,19 @@ export default {
             }
         },
 
+        pointerClicked: function(x, y) {
+            let position = {
+                x: parseInt(x) - 220,
+                y: parseInt(y)
+            };
+            this.setStraightPosition(position);
+            this.positionCursor(position);
+        },
+
         addTrain: function () {
             if (this.paths.length && this.paths[this.selectedTrack]) {
                 let train = new Train();
+                train.id = this.trains.length + 1;
                 train.addPath(this.paths[this.selectedTrack], false);
                 train.addCars(scene, this.newTrain.length);
                 train.setPriority(this.trains.length < 1);
@@ -729,28 +913,32 @@ export default {
         },
 
         updateScene: function () {
+            this.liveSemaphores();
+
             this.trains.forEach((train) => {
-                train.cars.forEach((car, index) => {
-                    if (car.body && car.body.speed) {
-                        let target = train.carPosition(index);
-                        let distance = global.Phaser.Math.Distance.Between(
-                            car.x,
-                            car.y,
-                            target.x,
-                            target.y
-                        );
+                // train.cars.forEach((car, index) => {
+                //     if (car.body && car.body.speed) {
+                //         let target = train.carPosition(index);
+                //         let distance = global.Phaser.Math.Distance.Between(
+                //             car.x,
+                //             car.y,
+                //             target.x,
+                //             target.y
+                //         );
 
-                        // distance tolerance, the faster it moves, the more tolerance is required.
-                        if (distance < train.speed / 3 + 1) {
-                            car.body.reset(target.x, target.y);
-                            train.reached = true;
-                        }
-                    }
-                });
+                //         // distance tolerance, the faster it moves, the more tolerance is required.
+                //         if (distance < train.speed / 3 + 1) {
+                //             car.body.reset(target.x, target.y);
+                //             train.reached = true;
+                //         }
+                //     }
+                // });
 
-                if (train.speed && train.reached) {
-                    train.startMoving(scene);
-                }
+                // if (train.speed && train.reached) {
+                //     train.startMoving(scene);
+                // }
+                // train.resumeMovement(scene);
+                train.startMoving(scene);
             });
 
             if (this.trains.length) {
@@ -858,8 +1046,8 @@ export default {
             let path = new global.Phaser.Curves.Path(this.newPath.path);
             path.draw(graphics);
             let position = path.getEndPoint();
-            this.newPath.x = position.x;
-            this.newPath.y = position.y;
+            this.newPath.x = parseInt(position.x);
+            this.newPath.y = parseInt(position.y);
             this.positionCursor();
             this.setStraightPosition();
         },
@@ -883,7 +1071,7 @@ export default {
             this.newPath.isCreating = false;
             this.newPath.path = this.emptyJasonPath();
             this.pathEditor = false;
-            this.drawPaths();
+            this.resetPathEditorView();
         },
 
         drawPaths: function () {
@@ -894,13 +1082,22 @@ export default {
             });
         },
 
-        importPaths: function () {
+        importJSON: function () {
             this.paths = [];
-            JSON.parse(this.jsonPaths).forEach((path, index) => {
+            this.semaphores = [];
+            let parsed = JSON.parse(this.jsonPaths)
+            parsed.paths.forEach((path, index) => {
                 let pathObj = new global.Phaser.Curves.Path(path);
                 pathObj.name = path.name ? path.name : "T" + index;
                 this.paths.push(pathObj);
             });
+            parsed.semaphores.forEach(semaphore => {
+                let semObj = new Semaphore(scene, semaphore[0].x, semaphore[0].y);
+                for (let x = 1; x < semaphore.length; x++) {
+                    semObj.newDetector(semaphore[x].x, semaphore[x].y)
+                }
+                this.semaphores.push(semObj)
+            })
             this.drawPaths();
         },
 
@@ -927,20 +1124,20 @@ export default {
             this.positionCursor();
         },
 
-        setStraightPosition: function () {
-            this.straight.x = this.newPath.x;
-            this.straight.y = this.newPath.y;
+        setStraightPosition: function (position) {
+            this.straight.x = position ? position.x : this.newPath.x;
+            this.straight.y = position ? position.y : this.newPath.y;
         },
 
-        positionCursor: function () {
+        positionCursor: function (position) {
             if (this.pathCursor) {
                 this.pathCursor.destroy();
             }
 
             if (this.pathEditor) {
                 this.pathCursor = factory.polygon(
-                    this.newPath.x,
-                    this.newPath.y,
+                    position ? position.x : this.newPath.x,
+                    position ? position.y : this.newPath.y,
                     [0, 0, 0, 8, 8, 8, 8, 0],
                     0xff0000
                 );
@@ -952,6 +1149,43 @@ export default {
                 });
             }
         },
+
+        newSemaphore: function () {
+            let semaphore = new Semaphore(scene,
+                this.straight.x,
+                this.straight.y);
+            this.semaphores.push(semaphore);
+        },
+
+        removeSemaphore: function (n) {
+            this.semaphores[n].detectors.forEach(d => d.detector.destroy());
+            if (n == 0) {
+                this.semaphores = this.semaphores.slice(1);
+            } else if (n == this.semaphores.length - 1) {
+                this.semaphores = this.semaphores.slice(0, -1);
+            } else {
+                this.semaphores = [
+                    ...this.semaphores.slice(0, n),
+                    ...this.semaphores.slice(n + 1),
+                ];
+            }
+        },
+
+        liveSemaphores: function() {
+            this.semaphores.forEach(semaphore => {
+                let cars = semaphore.detectors.reduce((cars, detector) => {
+                    let list = scene.physics.overlapCirc(detector.x, detector.y, 10, true, true)
+                    return list.length ? [...cars, ...list] : [...cars]
+                }, []);
+                this.trains.forEach(train => {
+                    train.handleSemaphore(semaphore, cars)
+                })
+            })
+        },
+
+        newDetector: function (n) {
+            this.semaphores[n].newDetector(this.straight.x, this.straight.y)
+        }
     },
 };
 </script>

@@ -1,278 +1,340 @@
-[
-    {
-        "type": "Path",
-        "x": 200,
-        "y": 200,
-        "autoClose": true,
-        "name": "Track 01",
-        "curves": [
+{
+    "paths": [
+        {
+            "type": "Path",
+            "x": 200,
+            "y": 200,
+            "autoClose": false,
+            "name": "Depot 01",
+            "curves": [
+                {
+                    "type": "LineCurve",
+                    "points": [
+                        250,
+                        150,
+                        520,
+                        150
+                    ]
+                },
+                {
+                    "type": "EllipseCurve",
+                    "x": 520,
+                    "y": -30,
+                    "xRadius": 180,
+                    "yRadius": 180,
+                    "startAngle": 90,
+                    "endAngle": 59.99999999999999,
+                    "clockwise": true,
+                    "rotation": 0
+                },
+                {
+                    "type": "EllipseCurve",
+                    "x": 700.0000000000001,
+                    "y": 281.76914536239786,
+                    "xRadius": 180,
+                    "yRadius": 180,
+                    "startAngle": 239.99999999999997,
+                    "endAngle": 270,
+                    "clockwise": false,
+                    "rotation": 0
+                }
+            ]
+        },
+        {
+            "type": "Path",
+            "x": 200,
+            "y": 200,
+            "autoClose": true,
+            "name": "Track 01",
+            "curves": [
+                {
+                    "type": "EllipseCurve",
+                    "x": 700,
+                    "y": 250,
+                    "xRadius": 150,
+                    "yRadius": 150,
+                    "startAngle": 270,
+                    "endAngle": 0,
+                    "clockwise": false,
+                    "rotation": 0
+                },
+                {
+                    "type": "LineCurve",
+                    "points": [
+                        850,
+                        249.99999999999997,
+                        850,
+                        550
+                    ]
+                },
+                {
+                    "type": "EllipseCurve",
+                    "x": 700,
+                    "y": 550,
+                    "xRadius": 150,
+                    "yRadius": 150,
+                    "startAngle": 0,
+                    "endAngle": 180,
+                    "clockwise": false,
+                    "rotation": 0
+                },
+                {
+                    "type": "EllipseCurve",
+                    "x": 400,
+                    "y": 550,
+                    "xRadius": 150,
+                    "yRadius": 150,
+                    "startAngle": 0,
+                    "endAngle": 270,
+                    "clockwise": true,
+                    "rotation": 0
+                },
+                {
+                    "type": "LineCurve",
+                    "points": [
+                        400,
+                        400,
+                        300,
+                        400
+                    ]
+                },
+                {
+                    "type": "EllipseCurve",
+                    "x": 300,
+                    "y": 250,
+                    "xRadius": 150,
+                    "yRadius": 150,
+                    "startAngle": 90,
+                    "endAngle": 270,
+                    "clockwise": false,
+                    "rotation": 0
+                },
+                {
+                    "type": "LineCurve",
+                    "points": [
+                        300,
+                        100,
+                        700,
+                        100
+                    ]
+                }
+            ]
+        },
+        {
+            "type": "Path",
+            "x": 200,
+            "y": 200,
+            "autoClose": true,
+            "name": "Track 02",
+            "curves": [
+                {
+                    "type": "LineCurve",
+                    "points": [
+                        700,
+                        100,
+                        800,
+                        100
+                    ]
+                },
+                {
+                    "type": "EllipseCurve",
+                    "x": 800,
+                    "y": 250,
+                    "xRadius": 150,
+                    "yRadius": 150,
+                    "startAngle": 270,
+                    "endAngle": 0,
+                    "clockwise": false,
+                    "rotation": 0
+                },
+                {
+                    "type": "LineCurve",
+                    "points": [
+                        950,
+                        249.99999999999997,
+                        950,
+                        650
+                    ]
+                },
+                {
+                    "type": "EllipseCurve",
+                    "x": 800,
+                    "y": 650,
+                    "xRadius": 150,
+                    "yRadius": 150,
+                    "startAngle": 0,
+                    "endAngle": 90,
+                    "clockwise": false,
+                    "rotation": 0
+                },
+                {
+                    "type": "LineCurve",
+                    "points": [
+                        800,
+                        800,
+                        200,
+                        800
+                    ]
+                },
+                {
+                    "type": "EllipseCurve",
+                    "x": 200,
+                    "y": 650,
+                    "xRadius": 150,
+                    "yRadius": 150,
+                    "startAngle": 90,
+                    "endAngle": 180,
+                    "clockwise": false,
+                    "rotation": 0
+                },
+                {
+                    "type": "LineCurve",
+                    "points": [
+                        50,
+                        650,
+                        50,
+                        250
+                    ]
+                },
+                {
+                    "type": "EllipseCurve",
+                    "x": 200,
+                    "y": 250,
+                    "xRadius": 150,
+                    "yRadius": 150,
+                    "startAngle": 180,
+                    "endAngle": 270,
+                    "clockwise": false,
+                    "rotation": 0
+                },
+                {
+                    "type": "LineCurve",
+                    "points": [
+                        199.99999999999997,
+                        100,
+                        700,
+                        100
+                    ]
+                }
+            ]
+        },
+        {
+            "type": "Path",
+            "x": 200,
+            "y": 200,
+            "autoClose": false,
+            "name": "Track 03",
+            "curves": [
+                {
+                    "type": "LineCurve",
+                    "points": [
+                        700,
+                        70,
+                        800,
+                        70
+                    ]
+                },
+                {
+                    "type": "EllipseCurve",
+                    "x": 800,
+                    "y": 250,
+                    "xRadius": 180,
+                    "yRadius": 180,
+                    "startAngle": 270,
+                    "endAngle": 0,
+                    "clockwise": false,
+                    "rotation": 0
+                },
+                {
+                    "type": "LineCurve",
+                    "points": [
+                        980,
+                        249.99999999999994,
+                        980,
+                        650
+                    ]
+                },
+                {
+                    "type": "EllipseCurve",
+                    "x": 800,
+                    "y": 650,
+                    "xRadius": 180,
+                    "yRadius": 180,
+                    "startAngle": 0,
+                    "endAngle": 90,
+                    "clockwise": false,
+                    "rotation": 0
+                },
+                {
+                    "type": "LineCurve",
+                    "points": [
+                        800,
+                        830,
+                        200,
+                        830
+                    ]
+                },
+                {
+                    "type": "EllipseCurve",
+                    "x": 200,
+                    "y": 650,
+                    "xRadius": 180,
+                    "yRadius": 180,
+                    "startAngle": 90,
+                    "endAngle": 180,
+                    "clockwise": false,
+                    "rotation": 0
+                },
+                {
+                    "type": "LineCurve",
+                    "points": [
+                        20,
+                        650,
+                        20,
+                        250
+                    ]
+                },
+                {
+                    "type": "EllipseCurve",
+                    "x": 200,
+                    "y": 249.99999999999997,
+                    "xRadius": 180,
+                    "yRadius": 180,
+                    "startAngle": 180,
+                    "endAngle": 270,
+                    "clockwise": false,
+                    "rotation": 0
+                },
+                {
+                    "type": "LineCurve",
+                    "points": [
+                        199.99999999999997,
+                        69.99999999999997,
+                        700,
+                        70
+                    ]
+                }
+            ]
+        }
+    ],
+    "semaphores": [
+        [
             {
-                "type": "EllipseCurve",
-                "x": 700,
-                "y": 250,
-                "xRadius": 150,
-                "yRadius": 150,
-                "startAngle": 270,
-                "endAngle": 0,
-                "clockwise": false,
-                "rotation": 0
+                "x": 621,
+                "y": 120
             },
             {
-                "type": "LineCurve",
-                "points": [
-                    850,
-                    249.99999999999997,
-                    850,
-                    550
-                ]
+                "x": 606,
+                "y": 100
             },
             {
-                "type": "EllipseCurve",
-                "x": 700,
-                "y": 550,
-                "xRadius": 150,
-                "yRadius": 150,
-                "startAngle": 0,
-                "endAngle": 180,
-                "clockwise": false,
-                "rotation": 0
+                "x": 775,
+                "y": 120
             },
             {
-                "type": "EllipseCurve",
-                "x": 400,
-                "y": 550,
-                "xRadius": 150,
-                "yRadius": 150,
-                "startAngle": 0,
-                "endAngle": 270,
-                "clockwise": true,
-                "rotation": 0
-            },
-            {
-                "type": "LineCurve",
-                "points": [
-                    400,
-                    400,
-                    300,
-                    400
-                ]
-            },
-            {
-                "type": "EllipseCurve",
-                "x": 300,
-                "y": 250,
-                "xRadius": 150,
-                "yRadius": 150,
-                "startAngle": 90,
-                "endAngle": 270,
-                "clockwise": false,
-                "rotation": 0
-            },
-            {
-                "type": "LineCurve",
-                "points": [
-                    300,
-                    100,
-                    700,
-                    100
-                ]
+                "x": 785,
+                "y": 100
             }
         ]
-    },
-    {
-        "type": "Path",
-        "x": 200,
-        "y": 200,
-        "autoClose": true,
-        "name": "Track 02",
-        "curves": [
-            {
-                "type": "LineCurve",
-                "points": [
-                    700,
-                    100,
-                    800,
-                    100
-                ]
-            },
-            {
-                "type": "EllipseCurve",
-                "x": 800,
-                "y": 250,
-                "xRadius": 150,
-                "yRadius": 150,
-                "startAngle": 270,
-                "endAngle": 0,
-                "clockwise": false,
-                "rotation": 0
-            },
-            {
-                "type": "LineCurve",
-                "points": [
-                    950,
-                    249.99999999999997,
-                    950,
-                    650
-                ]
-            },
-            {
-                "type": "EllipseCurve",
-                "x": 800,
-                "y": 650,
-                "xRadius": 150,
-                "yRadius": 150,
-                "startAngle": 0,
-                "endAngle": 90,
-                "clockwise": false,
-                "rotation": 0
-            },
-            {
-                "type": "LineCurve",
-                "points": [
-                    800,
-                    800,
-                    200,
-                    800
-                ]
-            },
-            {
-                "type": "EllipseCurve",
-                "x": 200,
-                "y": 650,
-                "xRadius": 150,
-                "yRadius": 150,
-                "startAngle": 90,
-                "endAngle": 180,
-                "clockwise": false,
-                "rotation": 0
-            },
-            {
-                "type": "LineCurve",
-                "points": [
-                    50,
-                    650,
-                    50,
-                    250
-                ]
-            },
-            {
-                "type": "EllipseCurve",
-                "x": 200,
-                "y": 250,
-                "xRadius": 150,
-                "yRadius": 150,
-                "startAngle": 180,
-                "endAngle": 270,
-                "clockwise": false,
-                "rotation": 0
-            },
-            {
-                "type": "LineCurve",
-                "points": [
-                    199.99999999999997,
-                    100,
-                    700,
-                    100
-                ]
-            }
-        ]
-    },
-    {
-        "type": "Path",
-        "x": 200,
-        "y": 200,
-        "autoClose": false,
-        "name": "Track 03",
-        "curves": [
-            {
-                "type": "LineCurve",
-                "points": [
-                    700,
-                    70,
-                    800,
-                    70
-                ]
-            },
-            {
-                "type": "EllipseCurve",
-                "x": 800,
-                "y": 250,
-                "xRadius": 180,
-                "yRadius": 180,
-                "startAngle": 270,
-                "endAngle": 0,
-                "clockwise": false,
-                "rotation": 0
-            },
-            {
-                "type": "LineCurve",
-                "points": [
-                    980,
-                    249.99999999999994,
-                    980,
-                    650
-                ]
-            },
-            {
-                "type": "EllipseCurve",
-                "x": 800,
-                "y": 650,
-                "xRadius": 180,
-                "yRadius": 180,
-                "startAngle": 0,
-                "endAngle": 90,
-                "clockwise": false,
-                "rotation": 0
-            },
-            {
-                "type": "LineCurve",
-                "points": [
-                    800,
-                    830,
-                    200,
-                    830
-                ]
-            },
-            {
-                "type": "EllipseCurve",
-                "x": 200,
-                "y": 650,
-                "xRadius": 180,
-                "yRadius": 180,
-                "startAngle": 90,
-                "endAngle": 180,
-                "clockwise": false,
-                "rotation": 0
-            },
-            {
-                "type": "LineCurve",
-                "points": [
-                    20,
-                    650,
-                    20,
-                    250
-                ]
-            },
-            {
-                "type": "EllipseCurve",
-                "x": 200,
-                "y": 249.99999999999997,
-                "xRadius": 180,
-                "yRadius": 180,
-                "startAngle": 180,
-                "endAngle": 270,
-                "clockwise": false,
-                "rotation": 0
-            },
-            {
-                "type": "LineCurve",
-                "points": [
-                    199.99999999999997,
-                    69.99999999999997,
-                    700,
-                    70
-                ]
-            }
-        ]
-    }
-]
+    ]
+}
