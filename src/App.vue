@@ -29,11 +29,10 @@
             </div>
             <button @click="addTrain">Add</button>
         </div>
-        <button @click="viewJsonPaths = !viewJsonPaths">JSON Paths</button>
+        <button @click="viewJsonPaths = !viewJsonPaths">Import/Export JSON</button>
         <div v-show="viewJsonPaths" class="flex-column">
-            <label>Current Paths</label>
+            <label>Current Track Stuff</label>
             <div>{{ JSON.stringify({'paths': paths, 'semaphores': semaphores.map(s => s.detectors.map(d => ({x: d.x, y: d.y})))}) }}</div>
-            <button @click="drawPaths">Draw Paths</button>
             <br />
             <label>Import JSON</label>
             <textarea v-model="jsonPaths"></textarea>
@@ -285,6 +284,7 @@ class Train {
         let speedRate = 15; // px/s for each speed point
         let speed = this.speed * speedRate;
 
+        this.reached = true
         this.cars.forEach((car, index) => {
             if (car.body) {
                 let target = this.carPosition(index);
@@ -295,20 +295,14 @@ class Train {
                     target.y
                 );
                 // distance tolerance, the faster it moves, the more tolerance is required.
-                let arrived = distance < this.speed / 3 + 1;
+                this.reached = this.reached && distance < this.speed / 3 + 1;
 
-                if (arrived) {
-                    if (car.body.speed) {
-                        if (this.debug) console.log('car reset: ', index, target.x, target.y)
-                        car.body.reset(target.x, target.y);
-                        if (index === 0) this.reached = true;
-                    }
+                if (this.reached) {
+                    if (this.debug) console.log('car reset: ', index, target.x, target.y)
+                    car.body.reset(target.x, target.y);
                 } else {
-                    // if (this.speed && !car.body.speed) {
-                        if (index === 0) this.reached = false;
-                        if (this.debug) console.log('moving car ', index, ' to ', target.x, target.y)
-                        scene.physics.moveToObject(car, target, speed);
-                    // }
+                    if (this.debug) console.log('moving car ', index, ' to ', target.x, target.y)
+                    scene.physics.moveToObject(car, target, speed);
                 }
             }
         });
@@ -385,7 +379,7 @@ class Train {
         }
     };
 
-    handleCollision = function (scene) {
+    handleTrainsCollision = function (scene) {
         let delay = 1500;
         this.autoPilot = Math.max(this.autoPilot, Math.min(this.speed, 7));
         this.failedTry++;
@@ -407,16 +401,19 @@ class Train {
     };
 
     handleSemaphore = function (semaphore, carList) {
-        let isThisTrain = carList.filter(
-            car => this.cars.filter(car2 => car.gameObject.body.center.x === car2.body.center.x && car.gameObject.body.center.y === car2.body.center.y).length
-        ).length
+        if (carList.length) {
+            let isThisTrain = carList.filter(
+                car => car.gameObject.body && this.cars.filter(car2 => car2.body && car.gameObject.body.center.x === car2.body.center.x && car.gameObject.body.center.y === car2.body.center.y).length
+            ).length
 
-        if (isThisTrain) {
-            // console.log('handling ', semaphore.train, semaphore, semaphoreGroup)
-            semaphore.handleCollision(this);
-        } else if (semaphore.train === this.id) {
-            // console.log('releasing ', semaphore.train, carList)
-            semaphore.release();
+            if (isThisTrain) {
+                semaphore.handleCollision(this)
+            } else if (semaphore.train && semaphore.train.id === this.id) {
+                // this train is not on collision, but still holds the priority, shall release the semaphore
+                semaphore.release()
+            }
+        } else {
+            this.resumeMovement(semaphore.scene)
         }
     };
 
@@ -427,7 +424,7 @@ class Train {
                     this.cars[0],
                     car,
                     function () {
-                        this.handleCollision(scene);
+                        train.handleTrainsCollision(scene);
                     },
                     null,
                     this
@@ -437,7 +434,7 @@ class Train {
                     this.cars[this.cars.length - 1],
                     car,
                     function () {
-                        this.handleCollision(scene);
+                        train.handleTrainsCollision(scene);
                     },
                     null,
                     this
@@ -489,26 +486,25 @@ class Semaphore {
 
     handleCollision = function (train) {
         if (!this.train) {
-            this.train = train.id
-        } else if (this.train !== train.id) {
-            console.log('blocking', train.id)
-            train.autoPilot = Math.max(train.autoPilot, Math.min(train.speed, 7));
-            train.speed = 0;
+            this.train = train
+            train.resumeMovement(this.scene)
+        } else if (this.train.id !== train.id) {
+            train.autoPilot = Math.max(train.autoPilot, Math.min(train.speed, 7))
+            train.speed = 0
         }
     }
 
     release = function() {
-        if (!this.releasing) {
-            this.releasing = true;
+        if (this.train && !this.releasing) {
+            this.releasing = true
             this.scene.time.addEvent({
-                delay: 3000,
+                delay: 2000,
                 callback: function () {
-                    console.log('cleaning', this.train)
-                    this.train = 0;
-                    this.releasing = false;
+                    this.releasing = false
+                    this.train = null
                 },
                 callbackScope: this,
-            });
+            })
         }
     }
 }
@@ -589,264 +585,10 @@ export default {
             scene.input.on('pointerdown', function (pointer) {
                 self.pointerClicked(pointer.x, pointer.y);
             });
-            self.drawPaths();
+            self.importJSON();
         }, 1000);
 
-        this.paths = [
-            {
-                type: "Path",
-                x: 200,
-                y: 200,
-                autoClose: false,
-                name: "Depot 01",
-                curves: [
-                    {
-                        type: "LineCurve",
-                        points: [250, 150, 520, 150],
-                    },
-                    {
-                        type: "EllipseCurve",
-                        x: 520,
-                        y: -30,
-                        xRadius: 180,
-                        yRadius: 180,
-                        startAngle: 90,
-                        endAngle: 59.99999999999999,
-                        clockwise: true,
-                        rotation: 0,
-                    },
-                    {
-                        type: "EllipseCurve",
-                        x: 700.0000000000001,
-                        y: 281.76914536239786,
-                        xRadius: 180,
-                        yRadius: 180,
-                        startAngle: 239.99999999999997,
-                        endAngle: 270,
-                        clockwise: false,
-                        rotation: 0,
-                    },
-                ],
-            },
-            {
-                type: "Path",
-                x: 200,
-                y: 200,
-                autoClose: true,
-                name: "Track 01",
-                curves: [
-                    {
-                        type: "EllipseCurve",
-                        x: 700,
-                        y: 250,
-                        xRadius: 150,
-                        yRadius: 150,
-                        startAngle: 270,
-                        endAngle: 0,
-                        clockwise: false,
-                        rotation: 0,
-                    },
-                    {
-                        type: "LineCurve",
-                        points: [850, 249.99999999999997, 850, 550],
-                    },
-                    {
-                        type: "EllipseCurve",
-                        x: 700,
-                        y: 550,
-                        xRadius: 150,
-                        yRadius: 150,
-                        startAngle: 0,
-                        endAngle: 180,
-                        clockwise: false,
-                        rotation: 0,
-                    },
-                    {
-                        type: "EllipseCurve",
-                        x: 400,
-                        y: 550,
-                        xRadius: 150,
-                        yRadius: 150,
-                        startAngle: 0,
-                        endAngle: 270,
-                        clockwise: true,
-                        rotation: 0,
-                    },
-                    {
-                        type: "LineCurve",
-                        points: [400, 400, 300, 400],
-                    },
-                    {
-                        type: "EllipseCurve",
-                        x: 300,
-                        y: 250,
-                        xRadius: 150,
-                        yRadius: 150,
-                        startAngle: 90,
-                        endAngle: 270,
-                        clockwise: false,
-                        rotation: 0,
-                    },
-                    {
-                        type: "LineCurve",
-                        points: [300, 100, 700, 100],
-                    },
-                ],
-            },
-            {
-                type: "Path",
-                x: 200,
-                y: 200,
-                autoClose: true,
-                name: "Track 02",
-                curves: [
-                    {
-                        type: "LineCurve",
-                        points: [700, 100, 800, 100],
-                    },
-                    {
-                        type: "EllipseCurve",
-                        x: 800,
-                        y: 250,
-                        xRadius: 150,
-                        yRadius: 150,
-                        startAngle: 270,
-                        endAngle: 0,
-                        clockwise: false,
-                        rotation: 0,
-                    },
-                    {
-                        type: "LineCurve",
-                        points: [950, 249.99999999999997, 950, 650],
-                    },
-                    {
-                        type: "EllipseCurve",
-                        x: 800,
-                        y: 650,
-                        xRadius: 150,
-                        yRadius: 150,
-                        startAngle: 0,
-                        endAngle: 90,
-                        clockwise: false,
-                        rotation: 0,
-                    },
-                    {
-                        type: "LineCurve",
-                        points: [800, 800, 200, 800],
-                    },
-                    {
-                        type: "EllipseCurve",
-                        x: 200,
-                        y: 650,
-                        xRadius: 150,
-                        yRadius: 150,
-                        startAngle: 90,
-                        endAngle: 180,
-                        clockwise: false,
-                        rotation: 0,
-                    },
-                    {
-                        type: "LineCurve",
-                        points: [50, 650, 50, 250],
-                    },
-                    {
-                        type: "EllipseCurve",
-                        x: 200,
-                        y: 250,
-                        xRadius: 150,
-                        yRadius: 150,
-                        startAngle: 180,
-                        endAngle: 270,
-                        clockwise: false,
-                        rotation: 0,
-                    },
-                    {
-                        type: "LineCurve",
-                        points: [199.99999999999997, 100, 700, 100],
-                    },
-                ],
-            },
-            {
-                type: "Path",
-                x: 200,
-                y: 200,
-                autoClose: false,
-                name: "Track 03",
-                curves: [
-                    {
-                        type: "LineCurve",
-                        points: [700, 70, 800, 70],
-                    },
-                    {
-                        type: "EllipseCurve",
-                        x: 800,
-                        y: 250,
-                        xRadius: 180,
-                        yRadius: 180,
-                        startAngle: 270,
-                        endAngle: 0,
-                        clockwise: false,
-                        rotation: 0,
-                    },
-                    {
-                        type: "LineCurve",
-                        points: [980, 249.99999999999994, 980, 650],
-                    },
-                    {
-                        type: "EllipseCurve",
-                        x: 800,
-                        y: 650,
-                        xRadius: 180,
-                        yRadius: 180,
-                        startAngle: 0,
-                        endAngle: 90,
-                        clockwise: false,
-                        rotation: 0,
-                    },
-                    {
-                        type: "LineCurve",
-                        points: [800, 830, 200, 830],
-                    },
-                    {
-                        type: "EllipseCurve",
-                        x: 200,
-                        y: 650,
-                        xRadius: 180,
-                        yRadius: 180,
-                        startAngle: 90,
-                        endAngle: 180,
-                        clockwise: false,
-                        rotation: 0,
-                    },
-                    {
-                        type: "LineCurve",
-                        points: [20, 650, 20, 250],
-                    },
-                    {
-                        type: "EllipseCurve",
-                        x: 200,
-                        y: 249.99999999999997,
-                        xRadius: 180,
-                        yRadius: 180,
-                        startAngle: 180,
-                        endAngle: 270,
-                        clockwise: false,
-                        rotation: 0,
-                    },
-                    {
-                        type: "LineCurve",
-                        points: [
-                            199.99999999999997, 69.99999999999997, 700, 70,
-                        ],
-                    },
-                ],
-            },
-        ];
-        this.paths.forEach((path, index) => {
-            let pathObj = new global.Phaser.Curves.Path(path);
-            pathObj.name = path.name ? path.name : "T" + index;
-            this.paths[index] = pathObj;
-        });
+        this.jsonPaths = '{"paths": [{"type": "Path","x": 200,"y": 200,"autoClose": false,"name": "Depot 01","curves": [{"type": "LineCurve","points": [250,150,520,150]},{"type": "EllipseCurve","x": 520,"y": -30,"xRadius": 180,"yRadius": 180,"startAngle": 90,"endAngle": 59.99999999999999,"clockwise": true,"rotation": 0},{"type": "EllipseCurve","x": 700.0000000000001,"y": 281.76914536239786,"xRadius": 180,"yRadius": 180,"startAngle": 239.99999999999997,"endAngle": 270,"clockwise": false,"rotation": 0}]},{"type": "Path","x": 200,"y": 200,"autoClose": true,"name": "Track 01","curves": [{"type": "EllipseCurve","x": 700,"y": 250,"xRadius": 150,"yRadius": 150,"startAngle": 270,"endAngle": 0,"clockwise": false,"rotation": 0},{"type": "LineCurve","points": [850,249.99999999999997,850,550]},{"type": "EllipseCurve","x": 700,"y": 550,"xRadius": 150,"yRadius": 150,"startAngle": 0,"endAngle": 180,"clockwise": false,"rotation": 0},{"type": "EllipseCurve","x": 400,"y": 550,"xRadius": 150,"yRadius": 150,"startAngle": 0,"endAngle": 270,"clockwise": true,"rotation": 0},{"type": "LineCurve","points": [400,400,300,400]},{"type": "EllipseCurve","x": 300,"y": 250,"xRadius": 150,"yRadius": 150,"startAngle": 90,"endAngle": 270,"clockwise": false,"rotation": 0},{"type": "LineCurve","points": [300,100,700,100]}]},{"type": "Path","x": 200,"y": 200,"autoClose": true,"name": "Track 02","curves": [{"type": "LineCurve","points": [700,100,800,100]},{"type": "EllipseCurve","x": 800,"y": 250,"xRadius": 150,"yRadius": 150,"startAngle": 270,"endAngle": 0,"clockwise": false,"rotation": 0},{"type": "LineCurve","points": [950,249.99999999999997,950,650]},{"type": "EllipseCurve","x": 800,"y": 650,"xRadius": 150,"yRadius": 150,"startAngle": 0,"endAngle": 90,"clockwise": false,"rotation": 0},{"type": "LineCurve","points": [800,800,200,800]},{"type": "EllipseCurve","x": 200,"y": 650,"xRadius": 150,"yRadius": 150,"startAngle": 90,"endAngle": 180,"clockwise": false,"rotation": 0},{"type": "LineCurve","points": [50,650,50,250]},{"type": "EllipseCurve","x": 200,"y": 250,"xRadius": 150,"yRadius": 150,"startAngle": 180,"endAngle": 270,"clockwise": false,"rotation": 0},{"type": "LineCurve","points": [199.99999999999997,100,700,100]}]},{"type": "Path","x": 200,"y": 200,"autoClose": false,"name": "Track 03","curves": [{"type": "LineCurve","points": [700,70,800,70]},{"type": "EllipseCurve","x": 800,"y": 250,"xRadius": 180,"yRadius": 180,"startAngle": 270,"endAngle": 0,"clockwise": false,"rotation": 0},{"type": "LineCurve","points": [980,249.99999999999994,980,650]},{"type": "EllipseCurve","x": 800,"y": 650,"xRadius": 180,"yRadius": 180,"startAngle": 0,"endAngle": 90,"clockwise": false,"rotation": 0},{"type": "LineCurve","points": [800,830,200,830]},{"type": "EllipseCurve","x": 200,"y": 650,"xRadius": 180,"yRadius": 180,"startAngle": 90,"endAngle": 180,"clockwise": false,"rotation": 0},{"type": "LineCurve","points": [20,650,20,250]},{"type": "EllipseCurve","x": 200,"y": 249.99999999999997,"xRadius": 180,"yRadius": 180,"startAngle": 180,"endAngle": 270,"clockwise": false,"rotation": 0},{"type": "LineCurve","points": [199.99999999999997,69.99999999999997,700,70]}]}],"semaphores": [[{"x": 621,"y": 120},{"x": 606,"y": 100},{"x": 775,"y": 120},{"x": 785,"y": 100}]]}'
     },
     computed: {
         allCars() {
@@ -916,28 +658,6 @@ export default {
             this.liveSemaphores();
 
             this.trains.forEach((train) => {
-                // train.cars.forEach((car, index) => {
-                //     if (car.body && car.body.speed) {
-                //         let target = train.carPosition(index);
-                //         let distance = global.Phaser.Math.Distance.Between(
-                //             car.x,
-                //             car.y,
-                //             target.x,
-                //             target.y
-                //         );
-
-                //         // distance tolerance, the faster it moves, the more tolerance is required.
-                //         if (distance < train.speed / 3 + 1) {
-                //             car.body.reset(target.x, target.y);
-                //             train.reached = true;
-                //         }
-                //     }
-                // });
-
-                // if (train.speed && train.reached) {
-                //     train.startMoving(scene);
-                // }
-                // train.resumeMovement(scene);
                 train.startMoving(scene);
             });
 
@@ -1177,6 +897,10 @@ export default {
                     let list = scene.physics.overlapCirc(detector.x, detector.y, 10, true, true)
                     return list.length ? [...cars, ...list] : [...cars]
                 }, []);
+                if (!cars.length) {
+                    semaphore.release()
+                }
+
                 this.trains.forEach(train => {
                     train.handleSemaphore(semaphore, cars)
                 })
