@@ -21,6 +21,7 @@
         <button @click="trackEditor = !trackEditor">Track Editor</button>
         <track-editor
             v-show="trackEditor"
+            :active="trackEditor"
             :factory="factory"
             :graphics="graphics"
             :scene="scene"
@@ -29,6 +30,7 @@
             :junctions="junctions"
             @trackSaved="addTrack"
             @junctionSaved="addJunction"
+            @removeJunction="removeJunction"
             @semaphoreSaved="addSemaphore"
             @removeSemaphore="removeSemaphore"
         ></track-editor>
@@ -66,7 +68,7 @@ export default {
     components: {
         TrainMonitor,
         TrainForm,
-        TrackEditor,
+        TrackEditor
     },
 
     data: function () {
@@ -203,12 +205,13 @@ export default {
             this.tracks.push(track);
         },
 
-        addSemaphore: function (semaphore) {
+        addSemaphore: function (position) {
+            let semaphore = new Semaphore(
+                this.scene,
+                position.x,
+                position.y
+            );
             this.semaphores.push(semaphore);
-        },
-
-        addJunction: function (junction) {
-            this.junctions.push(junction);
         },
 
         removeSemaphore: function (index) {
@@ -221,6 +224,23 @@ export default {
                 this.semaphores = [
                     ...this.semaphores.slice(0, index),
                     ...this.semaphores.slice(index + 1),
+                ];
+            }
+        },
+
+        addJunction: function (junction) {
+            this.junctions.push(junction);
+        },
+
+        removeJunction: function (index) {
+            if (index === 0) {
+                this.junctions = this.junctions.slice(1);
+            } else if (index == this.junctions.length - 1) {
+                this.junctions = this.junctions.slice(0, -1);
+            } else {
+                this.junctions = [
+                    ...this.junctions.slice(0, index),
+                    ...this.junctions.slice(index + 1),
                 ];
             }
         },
