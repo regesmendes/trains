@@ -1,11 +1,8 @@
 {
-    "paths": [
+    "tracks": [
         {
-            "type": "Path",
-            "x": 200,
-            "y": 200,
-            "autoClose": false,
             "name": "Depot 01",
+            "autoClose": false,
             "curves": [
                 {
                     "type": "LineCurve",
@@ -41,11 +38,8 @@
             ]
         },
         {
-            "type": "Path",
-            "x": 200,
-            "y": 200,
-            "autoClose": true,
             "name": "Track 01",
+            "autoClose": true,
             "curves": [
                 {
                     "type": "EllipseCurve",
@@ -121,11 +115,8 @@
             ]
         },
         {
-            "type": "Path",
-            "x": 200,
-            "y": 200,
-            "autoClose": true,
             "name": "Track 02",
+            "autoClose": true,
             "curves": [
                 {
                     "type": "LineCurve",
@@ -219,11 +210,8 @@
             ]
         },
         {
-            "type": "Path",
-            "x": 200,
-            "y": 200,
-            "autoClose": false,
             "name": "Track 03",
+            "autoClose": false,
             "curves": [
                 {
                     "type": "LineCurve",
@@ -334,7 +322,49 @@
             {
                 "x": 785,
                 "y": 100
+            },
+            {
+                "x": 224,
+                "y": 120
+            },
+            {
+                "x": 215,
+                "y": 100
+            },
+            {
+                "x": 272,
+                "y": 100
+            },
+            {
+                "x": 341,
+                "y": 100
+            },
+            {
+                "x": 441,
+                "y": 100
+            },
+            {
+                "x": 523,
+                "y": 100
+            },
+            {
+                "x": 703,
+                "y": 100
             }
         ]
+    ],
+    "junctions": [
+        {
+            "from": "Depot 01",
+            "to": "Track 01"
+        },
+        {
+            "from": "Track 01",
+            "to": "Track 02"
+        },
+        {
+            "from": "Depot 01",
+            "to": "Track 02"
+        }
     ]
 }

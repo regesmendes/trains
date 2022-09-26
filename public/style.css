@@ -3,11 +3,16 @@ body {
 }
 
 body > canvas {
-    margin-left: 300px;
+    margin-left: 30px;
+    aspect-ratio: unset;
 }
 
-.path-editor {
+.track-editor {
     display: flex;
+    border: 1px solid gray;
+    border-radius: 5px;
+    padding: 5px;
+    margin: 5px;
 }
 
 .flex-column {
@@ -17,4 +22,16 @@ body > canvas {
 
 .flex-column > * {
     display: flex;
+}
+
+.train-form, .train {
+    border: 1px solid blue;
+    border-radius: 5px;
+    padding: 5px;
+    margin: 5px;
+}
+
+.json-paths {
+    width: 900px;
+    height: 600px;
 }
