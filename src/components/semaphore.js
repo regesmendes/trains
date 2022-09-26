@@ -23,6 +23,12 @@ export class Semaphore {
         this.detectors.push(detector)
     }
 
+    removeDetector = function (detector) {
+        let removing = this.detectors.find(removing => detector.x === removing.x && detector.y === removing.y)
+        removing.detector.destroy()
+        this.detectors = this.detectors.filter(filtering => detector.x !== filtering.x || detector.y !== filtering.y)
+    }
+
     isOpen = function () {
         return !this.train
     }

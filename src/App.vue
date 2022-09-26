@@ -25,9 +25,12 @@
             :graphics="graphics"
             :scene="scene"
             :tracks="tracks"
+            :semaphores="semaphores"
             :junctions="junctions"
             @trackSaved="addTrack"
             @junctionSaved="addJunction"
+            @semaphoreSaved="addSemaphore"
+            @removeSemaphore="removeSemaphore"
         ></track-editor>
 
         <button @click="trainControls = !trainControls">Train Controls</button>
@@ -113,15 +116,15 @@ export default {
         let self = this;
         this.game = new global.Phaser.Game(this.config);
 
+        // loading default track set
         setTimeout(function () {
             self.scene = scene;
             self.factory = factory;
             self.graphics = graphics;
             self.importJSON();
         }, 1000);
-
         this.jsonTracks =
-            '{"tracks":[{"name":"Depot 01","autoClose":false,"curves":[{"type":"LineCurve","points":[250,150,520,150]},{"type":"EllipseCurve","x":520,"y":-30,"xRadius":180,"yRadius":180,"startAngle":90,"endAngle":59.99999999999999,"clockwise":true,"rotation":0},{"type":"EllipseCurve","x":700.0000000000001,"y":281.76914536239786,"xRadius":180,"yRadius":180,"startAngle":239.99999999999997,"endAngle":270,"clockwise":false,"rotation":0}]},{"name":"Track 01","autoClose":true,"curves":[{"type":"EllipseCurve","x":700,"y":250,"xRadius":150,"yRadius":150,"startAngle":270,"endAngle":0,"clockwise":false,"rotation":0},{"type":"LineCurve","points":[850,249.99999999999997,850,550]},{"type":"EllipseCurve","x":700,"y":550,"xRadius":150,"yRadius":150,"startAngle":0,"endAngle":180,"clockwise":false,"rotation":0},{"type":"EllipseCurve","x":400,"y":550,"xRadius":150,"yRadius":150,"startAngle":0,"endAngle":270,"clockwise":true,"rotation":0},{"type":"LineCurve","points":[400,400,300,400]},{"type":"EllipseCurve","x":300,"y":250,"xRadius":150,"yRadius":150,"startAngle":90,"endAngle":270,"clockwise":false,"rotation":0},{"type":"LineCurve","points":[300,100,700,100]}]},{"name":"Track 02","autoClose":true,"curves":[{"type":"LineCurve","points":[700,100,800,100]},{"type":"EllipseCurve","x":800,"y":250,"xRadius":150,"yRadius":150,"startAngle":270,"endAngle":0,"clockwise":false,"rotation":0},{"type":"LineCurve","points":[950,249.99999999999997,950,650]},{"type":"EllipseCurve","x":800,"y":650,"xRadius":150,"yRadius":150,"startAngle":0,"endAngle":90,"clockwise":false,"rotation":0},{"type":"LineCurve","points":[800,800,200,800]},{"type":"EllipseCurve","x":200,"y":650,"xRadius":150,"yRadius":150,"startAngle":90,"endAngle":180,"clockwise":false,"rotation":0},{"type":"LineCurve","points":[50,650,50,250]},{"type":"EllipseCurve","x":200,"y":250,"xRadius":150,"yRadius":150,"startAngle":180,"endAngle":270,"clockwise":false,"rotation":0},{"type":"LineCurve","points":[199.99999999999997,100,700,100]}]},{"name":"Track 03","autoClose":false,"curves":[{"type":"LineCurve","points":[700,70,800,70]},{"type":"EllipseCurve","x":800,"y":250,"xRadius":180,"yRadius":180,"startAngle":270,"endAngle":0,"clockwise":false,"rotation":0},{"type":"LineCurve","points":[980,249.99999999999994,980,650]},{"type":"EllipseCurve","x":800,"y":650,"xRadius":180,"yRadius":180,"startAngle":0,"endAngle":90,"clockwise":false,"rotation":0},{"type":"LineCurve","points":[800,830,200,830]},{"type":"EllipseCurve","x":200,"y":650,"xRadius":180,"yRadius":180,"startAngle":90,"endAngle":180,"clockwise":false,"rotation":0},{"type":"LineCurve","points":[20,650,20,250]},{"type":"EllipseCurve","x":200,"y":249.99999999999997,"xRadius":180,"yRadius":180,"startAngle":180,"endAngle":270,"clockwise":false,"rotation":0},{"type":"LineCurve","points":[199.99999999999997,69.99999999999997,700,70]}]}],"semaphores":[[{"x":621,"y":120},{"x":606,"y":100},{"x":775,"y":120},{"x":785,"y":100},{"x":224,"y":120},{"x":215,"y":100},{"x":272,"y":100},{"x":341,"y":100},{"x":441,"y":100},{"x":523,"y":100},{"x":703,"y":100}]],"junctions":[{"from":"Depot 01","to":"Track 01"},{"from":"Track 01","to":"Track 02"},{"from":"Depot 01","to":"Track 02"}]}';
+            '{"tracks":[{"name":"Depot 01","autoClose":false,"curves":[{"type":"LineCurve","points":[250,150,520,150]},{"type":"EllipseCurve","x":520,"y":-30,"xRadius":180,"yRadius":180,"startAngle":90,"endAngle":59.99999999999999,"clockwise":true,"rotation":0},{"type":"EllipseCurve","x":700.0000000000001,"y":281.76914536239786,"xRadius":180,"yRadius":180,"startAngle":239.99999999999997,"endAngle":270,"clockwise":false,"rotation":0}]},{"name":"Track 01","autoClose":true,"curves":[{"type":"EllipseCurve","x":700,"y":250,"xRadius":150,"yRadius":150,"startAngle":270,"endAngle":0,"clockwise":false,"rotation":0},{"type":"LineCurve","points":[850,249.99999999999997,850,550]},{"type":"EllipseCurve","x":700,"y":550,"xRadius":150,"yRadius":150,"startAngle":0,"endAngle":180,"clockwise":false,"rotation":0},{"type":"EllipseCurve","x":400,"y":550,"xRadius":150,"yRadius":150,"startAngle":0,"endAngle":270,"clockwise":true,"rotation":0},{"type":"LineCurve","points":[400,400,300,400]},{"type":"EllipseCurve","x":300,"y":250,"xRadius":150,"yRadius":150,"startAngle":90,"endAngle":270,"clockwise":false,"rotation":0},{"type":"LineCurve","points":[300,100,700,100]}]},{"name":"Track 02","autoClose":true,"curves":[{"type":"LineCurve","points":[700,100,800,100]},{"type":"EllipseCurve","x":800,"y":250,"xRadius":150,"yRadius":150,"startAngle":270,"endAngle":0,"clockwise":false,"rotation":0},{"type":"LineCurve","points":[950,249.99999999999997,950,650]},{"type":"EllipseCurve","x":800,"y":650,"xRadius":150,"yRadius":150,"startAngle":0,"endAngle":90,"clockwise":false,"rotation":0},{"type":"LineCurve","points":[800,800,200,800]},{"type":"EllipseCurve","x":200,"y":650,"xRadius":150,"yRadius":150,"startAngle":90,"endAngle":180,"clockwise":false,"rotation":0},{"type":"LineCurve","points":[50,650,50,250]},{"type":"EllipseCurve","x":200,"y":250,"xRadius":150,"yRadius":150,"startAngle":180,"endAngle":270,"clockwise":false,"rotation":0},{"type":"LineCurve","points":[199.99999999999997,100,700,100]}]},{"name":"Track 03","autoClose":false,"curves":[{"type":"LineCurve","points":[700,70,800,70]},{"type":"EllipseCurve","x":800,"y":250,"xRadius":180,"yRadius":180,"startAngle":270,"endAngle":0,"clockwise":false,"rotation":0},{"type":"LineCurve","points":[980,249.99999999999994,980,650]},{"type":"EllipseCurve","x":800,"y":650,"xRadius":180,"yRadius":180,"startAngle":0,"endAngle":90,"clockwise":false,"rotation":0},{"type":"LineCurve","points":[800,830,200,830]},{"type":"EllipseCurve","x":200,"y":650,"xRadius":180,"yRadius":180,"startAngle":90,"endAngle":180,"clockwise":false,"rotation":0},{"type":"LineCurve","points":[20,650,20,250]},{"type":"EllipseCurve","x":200,"y":249.99999999999997,"xRadius":180,"yRadius":180,"startAngle":180,"endAngle":270,"clockwise":false,"rotation":0},{"type":"LineCurve","points":[199.99999999999997,69.99999999999997,700,70]}]}],"semaphores":[[{"x":621,"y":120},{"x":606,"y":100},{"x":775,"y":120},{"x":785,"y":100},{"x":703,"y":100}],[{"x":224,"y":120},{"x":215,"y":100},{"x":272,"y":100},{"x":341,"y":100}]],"junctions":[{"from":"Depot 01","to":"Track 01"},{"from":"Track 01","to":"Track 02"},{"from":"Depot 01","to":"Track 02"},{"from":"Track 02","to":"Track 01"}]}';
     },
 
     computed: {
@@ -153,7 +156,7 @@ export default {
     methods: {
         removeTrain: function (train) {
             this.trains = this.trains.filter(
-                (checking) => checking.id != train.id
+                (checking) => checking.id !== train.id
             );
         },
 
@@ -200,8 +203,26 @@ export default {
             this.tracks.push(track);
         },
 
+        addSemaphore: function (semaphore) {
+            this.semaphores.push(semaphore);
+        },
+
         addJunction: function (junction) {
             this.junctions.push(junction);
+        },
+
+        removeSemaphore: function (index) {
+            this.semaphores[index].detectors.forEach((d) => d.detector.destroy());
+            if (index === 0) {
+                this.semaphores = this.semaphores.slice(1);
+            } else if (index == this.semaphores.length - 1) {
+                this.semaphores = this.semaphores.slice(0, -1);
+            } else {
+                this.semaphores = [
+                    ...this.semaphores.slice(0, index),
+                    ...this.semaphores.slice(index + 1),
+                ];
+            }
         },
 
         importJSON: function () {

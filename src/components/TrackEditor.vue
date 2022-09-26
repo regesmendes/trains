@@ -116,24 +116,26 @@
             <div>
                 <label>Semaphores</label>
                 <div
-                    v-for="(semaphore, index) in semaphores"
-                    :key="index"
+                    v-for="(semaphore, semaphoreIndex) in semaphores"
+                    :key="semaphoreIndex"
                     class="flex-column"
                 >
                     <div class="flex-column">
-                        <label> Semaphore {{ index }} </label>
-                        <button @click="removeSemaphore(index)">
+                        <label> Semaphore {{ semaphoreIndex }} </label>
+                        <button @click="removeSemaphore(semaphoreIndex)">
                             Remove Semaphore
                         </button>
                     </div>
                     <label
-                        v-for="(detector, index) in semaphore.detectors"
-                        :key="index"
+                        v-for="(detector, detectorIndex) in semaphore.detectors"
+                        :key="detectorIndex"
                     >
-                        Detector {{ index }}: {{ detector.x }},
+                        Detector {{ detectorIndex }}: {{ detector.x }},
                         {{ detector.y }}
+                        <button @click="positionCursor(detector)">Locate</button>
+                        <button @click="removeDetector(detector, semaphoreIndex)">Remove Detector</button>
                     </label>
-                    <button @click="newDetector(index)">
+                    <button @click="newDetector(semaphoreIndex)">
                         New Detector
                     </button>
                     <div>
@@ -197,8 +199,7 @@ export default {
                 rotation: 0,
             },
             trackCursor: null,
-            positionHistory: [],
-            semaphores: [],
+            positionHistory: []
         }
     },
 
@@ -207,6 +208,7 @@ export default {
         factory: Object,
         scene: Object,
         tracks: Array,
+        semaphores: Array,
         junctions: Array
     },
 
@@ -407,7 +409,7 @@ export default {
             this.scene.tweens.add({
                 targets: this.trackCursor,
                 repeat: -1,
-                alpha: 1,
+                alpha: 0,
             });
         },
 
@@ -417,25 +419,19 @@ export default {
                 this.straight.x,
                 this.straight.y
             );
-            this.semaphores.push(semaphore);
+            this.$emit('semaphoreSaved', semaphore);
         },
 
-        removeSemaphore: function (n) {
-            this.semaphores[n].detectors.forEach((d) => d.detector.destroy());
-            if (n == 0) {
-                this.semaphores = this.semaphores.slice(1);
-            } else if (n == this.semaphores.length - 1) {
-                this.semaphores = this.semaphores.slice(0, -1);
-            } else {
-                this.semaphores = [
-                    ...this.semaphores.slice(0, n),
-                    ...this.semaphores.slice(n + 1),
-                ];
-            }
+        removeSemaphore: function (index) {
+            this.$emit('removeSemaphore', index)
         },
 
-        newDetector: function (n) {
-            this.semaphores[n].newDetector(this.straight.x, this.straight.y);
+        newDetector: function (sempahoreIndex) {
+            this.semaphores[sempahoreIndex].newDetector(this.straight.x, this.straight.y);
+        },
+
+        removeDetector: function (detector, sempahoreIndex) {
+            this.semaphores[sempahoreIndex].removeDetector(detector)
         },
 
         createJunction: function () {
