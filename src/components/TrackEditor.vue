@@ -228,7 +228,7 @@ export default {
                 this.trackCursor = this.factory.polygon(
                     position ? position.x : this.newTrack.x,
                     position ? position.y : this.newTrack.y,
-                    [0, 0, 0, 3, 3, 3, 3, 0],
+                    [0, 0, 0, 5, 5, 5, 5, 0],
                     0xff0000
                 );
 
@@ -252,8 +252,8 @@ export default {
             this.$emit('semaphoreSaved', position)
         },
 
-        removeSemaphore: function (sempahoreIndex) {
-            this.$emit('removeSemaphore', sempahoreIndex)
+        removeSemaphore: function (semaphoreIndex) {
+            this.$emit('removeSemaphore', semaphoreIndex)
         }
     }
 }

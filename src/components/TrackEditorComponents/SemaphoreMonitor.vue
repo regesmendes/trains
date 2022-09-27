@@ -33,6 +33,22 @@
             <div>
                 Status: {{ semaphore.isOpen() ? "open" : "closed" }}
             </div>
+            <div>
+                <div>Traffic Lights</div>
+                <button @click="newTrafficLight(semaphoreIndex)" class="cursor-pointer">🞧</button>
+            </div>
+            <ul class="point-list">
+                <li
+                    v-for="(light, index) in semaphore.trafficLights"
+                    :key="index"
+                >
+                    <div>
+                        <div>({{ light.x }}, {{ light.y }})</div>
+                        <div @click="$emit('positionCursor', light)" class="cursor-pointer">🔎</div>
+                        <div @click="removeTrafficLight(light, semaphoreIndex)" class="cursor-pointer">🞮</div>
+                    </div>
+                </li>
+            </ul>
         </div>
     </div>
 </template>
@@ -65,15 +81,25 @@ export default {
             }
         },
 
-        newDetector: function (sempahoreIndex) {
-            this.semaphores[sempahoreIndex].newDetector(this.origin.x, this.origin.y);
+        newDetector: function (semaphoreIndex) {
+            this.semaphores[semaphoreIndex].newDetector(this.origin.x, this.origin.y);
         },
 
-        removeDetector: function (detector, sempahoreIndex) {
+        removeDetector: function (detector, semaphoreIndex) {
             if (confirm('Remove the Detector (' + detector.x + ', ' + detector.y + ')?')) {
-                this.semaphores[sempahoreIndex].removeDetector(detector)
+                this.semaphores[semaphoreIndex].removeDetector(detector)
             }
         },
+
+        newTrafficLight: function (semaphoreIndex) {
+            this.semaphores[semaphoreIndex].newTrafficLight(this.origin.x, this.origin.y);
+        },
+
+        removeTrafficLight: function (light, semaphoreIndex) {
+            if (confirm('Remove the Traffic Light (' + light.x + ', ' + light.y + ')?')) {
+                this.semaphores[semaphoreIndex].removeTrafficLight(light)
+            }
+        }
     }
 }
 </script>

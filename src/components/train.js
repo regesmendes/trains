@@ -192,24 +192,23 @@ export class Train {
     }
 
     handleTrainsCollision = function () {
-        let delay = 1500
         this.autoPilot = Math.max(this.autoPilot, Math.min(this.speed, 7))
         this.failedTry++
-        if (!this.priority && this.failedTry % 5 === 1) {
-            this.reverseMotion()
-        } else {
-            if (this.priority) {
-                this.speed = 0
+        if (this.failedTry === 1) {
+            let delay = 4500
+            this.speed = 0
+            if (!this.priority) {
+                delay = 1500
+                this.reverseMotion()
             }
-            delay *= this.failedTry * 4
-        }
 
-        this.scene.time.addEvent({
-            delay: delay,
-            callback: this.resumeMovement,
-            callbackScope: this,
-            args: [],
-        })
+            this.scene.time.addEvent({
+                delay: delay,
+                callback: this.resumeMovement,
+                callbackScope: this,
+                args: [],
+            })
+        }
     }
 
     handleSemaphore = function (semaphore, carList) {
@@ -225,7 +224,8 @@ export class Train {
                 semaphore.release()
             }
         } else {
-            this.resumeMovement()
+            semaphore.release()
+            // this.resumeMovement()
         }
     }
 
