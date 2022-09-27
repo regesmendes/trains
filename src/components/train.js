@@ -119,7 +119,8 @@ export class Train {
         this.cars.forEach((car) => car.destroy())
     }
 
-    addPath = function (path, replacing = true, reversed = false) {
+    addPath = function (track, replacing = true, reversed = false) {
+        let path = track.path
         let pieces = 50
         let distance = 0
         const trainSize = this.cars.length * (this.carOffset + 3)
@@ -127,14 +128,14 @@ export class Train {
         const max = 5
 
         while (distance < min || distance > max) {
-            path.points = path.getSpacedPoints(pieces).slice(0, pieces)
+            path.points = path.getSpacedPoints(pieces).slice(0, parseInt(pieces))
             distance = global.Phaser.Math.Distance.Between(
                 path.points[0].x,
                 path.points[0].y,
                 path.points[1].x,
                 path.points[1].y
             )
-            pieces *= parseInt(distance / ((min + max) / 2))
+            pieces *= distance / ((min + max) / 2)
         }
         if (replacing) {
             if (reversed) {
@@ -147,10 +148,10 @@ export class Train {
         }
         if (reversed) {
             this.locator += path.points.length
-            this.paths = [path, ...this.paths]
+            this.paths = [track, ...this.paths]
             this.points = [...path.points, ...this.points]
         } else {
-            this.paths.push(path)
+            this.paths.push(track)
             this.points = [...this.points, ...path.points]
         }
     }
@@ -158,7 +159,7 @@ export class Train {
     removePath = function (name) {
         let bookmark = this.carPosition(0)
         this.paths = this.paths.filter((p) => p.name !== name)
-        this.points = this.paths.reduce((l, p) => [...l, ...p.points], [])
+        this.points = this.paths.reduce((l, p) => [...l, ...p.path.points], [])
         this.points.forEach((p, i) => {
             if (p.x === bookmark.x && p.y === bookmark.y) {
                 this.locator = i
@@ -192,18 +193,20 @@ export class Train {
     }
 
     handleTrainsCollision = function () {
+        /**
+         * this method handles train collisions
+         * it considers mainly front collisions making the priority to wait a little longer while the other reverses and go away
+         */
         this.autoPilot = Math.max(this.autoPilot, Math.min(this.speed, 7))
         this.failedTry++
         if (this.failedTry === 1) {
-            let delay = 4500
             this.speed = 0
             if (!this.priority) {
-                delay = 1500
                 this.reverseMotion()
             }
 
             this.scene.time.addEvent({
-                delay: delay,
+                delay: this.priority ? 4500 : 1500,
                 callback: this.resumeMovement,
                 callbackScope: this,
                 args: [],
@@ -220,12 +223,11 @@ export class Train {
             if (isThisTrain) {
                 semaphore.handleCollision(this)
             } else if (semaphore.train && semaphore.train.id === this.id) {
-                // this train is not on collision, but still holds the priority, shall release the semaphore
+                // this train is not on collision, but still holds the semaphore, shall release it
                 semaphore.release()
             }
         } else {
             semaphore.release()
-            // this.resumeMovement()
         }
     }
 
@@ -262,11 +264,11 @@ export class Train {
         this.priority = priority
     }
 
-    getRouteName = function () {
+    getItinerary = function () {
         if (this.reverse) {
-            return this.paths.map((p) => p.name).reverse().join(" - ")
+            return this.paths.map((p) => p.name).reverse()
         }
-        return this.paths.map((p) => p.name).join(" - ")
+        return this.paths.map((p) => p.name)
     }
 
     setSpeed = function (speed) {
@@ -293,7 +295,7 @@ export class Train {
         let location = 0;
         let seeker = this.locator;
         do {
-            seeker -= this.paths[location].points.length
+            seeker -= this.paths[location].path.points.length
             if (seeker > 0) location++
         } while (seeker > 0)
         return this.paths[location].name

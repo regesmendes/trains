@@ -1,16 +1,24 @@
 <template>
     <div v-show="train" class="train">
-        <div>Train {{ train.id }}</div>
-        <div>Line {{ train.getRouteName() }}</div>
-        <div>
-            Speed:
-            <input
-                type="number"
-                :value="train.speed"
-                @input="train.setSpeed(parseInt($event.target.value))"
-                min="0"
-                max="10"
-            />
+        <div class="train-header">
+            <div>Train {{ train.id }}</div>
+            <div>
+                Speed:
+                <input
+                    type="number"
+                    :value="train.speed"
+                    @input="train.setSpeed(parseInt($event.target.value))"
+                    min="0"
+                    max="10"
+                />
+            </div>
+        </div>
+        <div class="flex-column">
+            <div>Itinerary</div>
+            <div v-for="(location, index) in train.getItinerary()" :key="index">
+                <div :class="{'bold': location === train.getLocation()}">{{ location }}</div>
+                <button v-if="location !== train.getLocation()" @click="train.removePath(location)">🞮</button>
+            </div>
         </div>
         <div class="train">
             <button @click="newTrackAddingMode = !newTrackAddingMode">{{ newTrackAddingMode ? 'Adding' : 'Replacing' }}</button>
@@ -84,7 +92,8 @@ export default {
                 this.train.setAutoReverse(true)
             }
             let search = this.targetTrack.replace(' (rev)', '')
-            this.train.addPath(this.tracks.filter(track => track.name === search)[0], !this.newTrackAddingMode, rev);
+            let track = this.tracks.find(track => track.name === search)
+            this.train.addPath(track, !this.newTrackAddingMode, rev);
         }
     }
 }

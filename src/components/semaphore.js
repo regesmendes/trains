@@ -54,7 +54,6 @@ export class Semaphore {
     handleCollision = function (train) {
         if (!this.train) {
             this.lock(train);
-            // train.resumeMovement(this.scene);
         } else if (this.train.id !== train.id) {
             train.autoPilot = Math.max(train.autoPilot, Math.min(train.speed, 7));
             train.speed = 0;

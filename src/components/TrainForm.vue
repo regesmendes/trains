@@ -1,31 +1,35 @@
 <template>
     <div class="train-form flex-column">
-        <div>New Train</div>
-        <div>
-            <label for="trainSize">Size: </label>
-            <input
-                type="number"
-                id="trainSize"
-                v-model="trainSize"
-            />
+        <div class="train-header">
+            <div>New Train</div>
+            <div>
+                <label for="trainSize">Size: </label>
+                <input
+                    type="number"
+                    id="trainSize"
+                    v-model="trainSize"
+                />
+            </div>
         </div>
-        <div>
-            <label for="trainTrack">Track: </label>
-            <select
-                name="trainTrack"
-                id="trainTrack"
-                v-model="trainTrack"
-            >
-                <option
-                    v-for="(track, index) in tracks"
-                    :value="index"
-                    :key="index"
+        <div class="train-header">
+            <div>
+                <label for="trainTrack">Deploy to</label>
+                <select
+                    name="trainTrack"
+                    id="trainTrack"
+                    v-model="trainTrack"
                 >
-                    {{ track.name }}
-                </option>
-            </select>
+                    <option
+                        v-for="(track, index) in tracks"
+                        :value="index"
+                        :key="index"
+                    >
+                        {{ track.name }}
+                    </option>
+                </select>
+            </div>
+            <button @click="addTrain">Deploy</button>
         </div>
-        <button @click="addTrain">Add</button>
 
     </div>
 </template>
@@ -36,7 +40,7 @@ import { Train } from './train';
 export default {
     data: function () {
         return {
-            trainSize: 5,
+            trainSize: 11,
             trainTrack: 0,
         }
     },

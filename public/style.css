@@ -60,6 +60,15 @@ body > canvas {
     word-break: break-all;
 }
 
+.bold {
+    font-weight: bold;
+}
+
+.train-header {
+    display: flex;
+    justify-content: space-between;
+}
+
 #app {
     width: 350px;
 }
