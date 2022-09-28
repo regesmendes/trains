@@ -227,15 +227,6 @@
                         "endAngle": 270,
                         "clockwise": false,
                         "rotation": 0
-                    },
-                    {
-                        "type": "LineCurve",
-                        "points": [
-                            199.99999999999997,
-                            100,
-                            700,
-                            100
-                        ]
                     }
                 ]
             }
