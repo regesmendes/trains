@@ -21,4 +21,4 @@ jobs:
       - name: Build front-end assets
         run: npm install && npm run build
       - name: Deploy (sync with S3)
-        run: aws s3 sync ./dist s3://trains
+        run: aws --region us-east-1 s3 sync dist/ s3://trains/ --size-only --delete --exclude index.html --cache-control "public, max-age=86400"
