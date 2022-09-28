@@ -1,0 +1,24 @@
+name: Deploy to S3 Static Site Host
+
+on:
+  push:
+    branches: [ "master" ]
+
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout the code
+        uses: actions/checkout@v3
+      - name: Install AWS Cli
+        run: curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip" && unzip awscliv2.zip && sudo ./aws/install --update && aws configure set aws_access_key_id ${{ secrets.AWS_ACCESS_KEY_ID }} && aws configure set aws_secret_access_key ${{ secrets.AWS_SECRET_ACCESS_KEY }} && rm awscliv2.zip
+      - name: Setup Node.js environment
+        uses: actions/setup-node@v3.5.0
+        with:
+          node-version: 17.x
+      - name: Build front-end assets
+        run: npm install && npm run build
+      - name: Deploy (sync with S3)
+        run: aws s3 sync ./dist s3://trains
