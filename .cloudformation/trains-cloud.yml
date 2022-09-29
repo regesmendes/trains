@@ -1,0 +1,159 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Static website hosting with S3 and CloudFront'
+
+Parameters:
+  AppUrl:
+    Type: String
+    Default: 'trains.foradoprograma.com'
+  HostedZoneId:
+    Type: String
+    Default: 'Z2B5SF3QSOXYRL'
+
+Resources:
+  # Create the bucket to contain the website HTML
+  S3Bucket:
+    Type: 'AWS::S3::Bucket'
+    Properties:
+      BucketName: !Ref AppUrl
+      WebsiteConfiguration:
+        ErrorDocument: 'index.html'
+        IndexDocument: 'index.html'
+
+  # Configure the bucket as a CloudFront Origin
+  ReadPolicy:
+    Type: 'AWS::S3::BucketPolicy'
+    Properties:
+      Bucket: !Ref S3Bucket
+      PolicyDocument:
+        Statement:
+          - Action: 's3:GetObject'
+            Effect: Allow
+            Resource: !Sub 'arn:aws:s3:::${S3Bucket}/*'
+            Principal:
+              CanonicalUser: !GetAtt CloudFrontOriginAccessIdentity.S3CanonicalUserId
+            # Principal: '*'
+
+  # Configure Access to CloudFront
+  CloudFrontOriginAccessIdentity:
+    Type: 'AWS::CloudFront::CloudFrontOriginAccessIdentity'
+    Properties:
+      CloudFrontOriginAccessIdentityConfig:
+        Comment: !Ref S3Bucket
+
+  # SSL Certificate
+  SSLCertificate:
+    Type: AWS::CertificateManager::Certificate
+    Properties:
+      DomainName: !Ref AppUrl
+      DomainValidationOptions:
+        - DomainName: !Ref AppUrl
+          HostedZoneId: !Ref HostedZoneId
+      ValidationMethod: DNS
+
+  # Configure CloudFront
+  CloudFrontDistribution:
+    Type: 'AWS::CloudFront::Distribution'
+    Properties:
+      DistributionConfig:
+        CustomErrorResponses:
+          - ErrorCode: 403 # not found
+            ResponseCode: 404
+            ResponsePagePath: '/index.html'
+        DefaultCacheBehavior:
+          AllowedMethods:
+            - GET
+            - HEAD
+            - OPTIONS
+          CachedMethods:
+            - GET
+            - HEAD
+            - OPTIONS
+          Compress: true
+          DefaultTTL: 3600 # in seconds
+          ForwardedValues:
+            Cookies:
+              Forward: none
+            QueryString: false
+          MaxTTL: 86400 # in seconds
+          MinTTL: 60 # in seconds
+          TargetOriginId: s3origin
+          ViewerProtocolPolicy: 'allow-all'
+        # This DefaultRootObject configuration is not enough.
+        DefaultRootObject: 'index.html'
+        Enabled: true
+        HttpVersion: http2
+        Origins:
+          - DomainName: !GetAtt 'S3Bucket.DomainName'
+            Id: s3origin
+            S3OriginConfig:
+              OriginAccessIdentity: !Sub 'origin-access-identity/cloudfront/${CloudFrontOriginAccessIdentity}'
+        PriceClass: 'PriceClass_100'
+        Aliases:
+          - !Ref AppUrl
+        ViewerCertificate:
+          SslSupportMethod: 'sni-only'
+          AcmCertificateArn: !Ref SSLCertificate
+          MinimumProtocolVersion: 'TLSv1'
+
+  # Route53 A alias Record to cloudfront distribution
+  Route53A:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      Name: !Ref AppUrl
+      Comment: 'Created by CloudFormation'
+      Type: A
+      HostedZoneId: !Ref HostedZoneId
+      AliasTarget:
+        DNSName: !GetAtt CloudFrontDistribution.DomainName
+        HostedZoneId: Z2FDTNDATAQYW2 # CloudFront HostedZoneId
+
+  # Route53 AAAA alias Record to cloudfront distribution
+  Route53AAAA:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      Name: !Ref AppUrl
+      Comment: 'Created by CloudFormation'
+      Type: AAAA
+      HostedZoneId: !Ref HostedZoneId
+      AliasTarget:
+        DNSName: !GetAtt CloudFrontDistribution.DomainName
+        HostedZoneId: Z2FDTNDATAQYW2 # CloudFront HostedZoneId
+
+  # Create an IAM user with Access Keys to enable automated deployment of the website to this bucket
+  PublishUser:
+    Type: 'AWS::IAM::User'
+    Properties:
+      Policies:
+        - PolicyName: !Sub 'publish-to-${S3Bucket}'
+          PolicyDocument:
+            Statement:
+              - Action: 's3:*'
+                Effect: Allow
+                Resource:
+                  - !Sub 'arn:aws:s3:::${S3Bucket}'
+                  - !Sub 'arn:aws:s3:::${S3Bucket}/*'
+
+  PublishCredentials:
+    Type: 'AWS::IAM::AccessKey'
+    Properties:
+      UserName: !Ref PublishUser
+
+Outputs:
+  Bucket:
+    Description: 'S3 Bucket Name'
+    Value: !Ref S3Bucket
+  BucketUrl:
+    Description: 'S3 Bucket Url'
+    Value: !GetAtt 'S3Bucket.WebsiteURL'
+  AccessKeyId:
+    Description: 'S3 Access Key'
+    Value: !Ref PublishCredentials
+  AccessKeySecret:
+    Description: 'S3 Secret Key'
+    Value: !GetAtt PublishCredentials.SecretAccessKey
+  DistributionId:
+    Description: 'CloudFront Distribution ID'
+    Value: !Ref CloudFrontDistribution
+  Domain:
+    Description: 'Cloudfront Domain'
+    Value: !GetAtt CloudFrontDistribution.DomainName
