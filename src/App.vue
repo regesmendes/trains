@@ -14,6 +14,7 @@
             <track-lib
                 :tracks="trackLib"
                 @loadTrack="importTrackFromLib"
+                @saveToFile="saveToFile"
             ></track-lib>
         </div>
 
@@ -41,6 +42,15 @@
         ></track-editor>
 
         <br><br>
+
+        <button @click="trackControls = !trackControls">Track Controls</button>
+        <div v-show="trackControls" class="flex-column form">
+            <div v-for="(track, index) in tracks" :key="index">
+                <div><input type="color" v-model="track.color" @change="drawTracks"></div>
+                <div>{{ track.name }}</div>
+            </div>
+            <button @click="saveCustomTrack">Download as Custom Track</button>
+        </div>
 
         <button @click="trainControls = !trainControls">Train Controls</button>
         <div v-show="trainControls" class="flex-column">
@@ -117,6 +127,7 @@ export default {
             trackEditor: false,
             newTrainForm: false,
             trainControls: false,
+            trackControls: false,
             viewJsonTracks: false,
             viewTrackLib: false,
             scene: null,
@@ -144,18 +155,10 @@ export default {
         },
 
         exportedJson() {
-            let tracks = this.tracks.map((track) => ({
-                name: track.name,
-                path: {
-                    type: track.path.type,
-                    autoClose: track.path.autoClose,
-                    x: track.path.x,
-                    y: track.path.y,
-                    curves: track.path.curves
-                }
-            }));
+            let tracks = this.tracks.map(track => track.toExport());
             return JSON.stringify({
-                tracks: tracks,
+                name: "Custom Track",
+                branches: tracks,
                 semaphores: this.semaphores.map(s => ({
                     detectors: s.detectors.map(d => ({ x: d.x, y: d.y })),
                     lights: s.trafficLights.map(l => ({ x: l.x, y: l.y }))
@@ -216,8 +219,8 @@ export default {
         },
 
         drawTracks: function () {
-            graphics.lineStyle(1, 0x000000, 1);
             this.tracks.forEach((track) => {
+                graphics.lineStyle(1, track.getColorInt(), 1);
                 track.path.draw(graphics);
             });
         },
@@ -284,8 +287,14 @@ export default {
         importJSON: function (parsed) {
             if (parsed.branches) {
                 parsed.branches.forEach((track, index) => {
-                    let trackObj = new Track(new global.Phaser.Curves.Path(track.path));
+                    let trackObj = new Track();
+                    trackObj.setPathDefinition(track.path);
+                    trackObj.setPath(new global.Phaser.Curves.Path(track.path));
                     trackObj.setName(track.name ? track.name : "T" + index);
+                    trackObj.setId(this.tracks.length + 1);
+                    if (track.color) {
+                        trackObj.setColor(track.color);
+                    }
                     this.tracks.push(trackObj);
                 });
             }
@@ -344,6 +353,22 @@ export default {
                 }
             });
         },
+
+        saveCustomTrack: function () {
+            this.saveToFile('Custom_Track.json', this.exportedJson);
+        },
+
+        saveToFile: function(filename, text) {
+            let element = document.createElement('a');
+
+            element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(text));
+            element.setAttribute('download', filename);
+            element.style.display = 'none';
+            document.body.appendChild(element);
+            element.click();
+
+            document.body.removeChild(element);
+        }
     },
 };
 </script>

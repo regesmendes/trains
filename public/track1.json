@@ -3,6 +3,7 @@
     "branches": [
         {
             "name": "Main Station L1",
+            "color": "#0000ff",
             "path": {
                 "autoClose": false,
                 "curves": [
@@ -20,6 +21,7 @@
         },
         {
             "name": "Main Station L2",
+            "color": "#0000ff",
             "path": {
                 "autoClose": false,
                 "curves": [
@@ -37,6 +39,7 @@
         },
         {
             "name": "Depot 01",
+            "color": "#0000ff",
             "path": {
                 "autoClose": false,
                 "curves": [

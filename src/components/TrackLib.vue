@@ -27,16 +27,8 @@ export default {
 
         downloadTrack(track) {
             let text = JSON.stringify(track);
-            let filename = 'track.json';
-            let element = document.createElement('a');
-
-            element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(text));
-            element.setAttribute('download', filename);
-            element.style.display = 'none';
-            document.body.appendChild(element);
-            element.click();
-
-            document.body.removeChild(element);
+            let filename = track.name.replaceAll(' ', '_').concat('.json');
+            this.$emit('saveToFile', filename, text);
         }
     }
 }
