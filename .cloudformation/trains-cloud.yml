@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: 'Static website hosting with S3 and CloudFront'
+Description: 'Static Website Hosting with CloudFront and S3'
 
 Parameters:
   AppUrl:
@@ -10,7 +10,7 @@ Parameters:
     Default: 'Z2B5SF3QSOXYRL'
 
 Resources:
-  # Create the bucket to contain the website HTML
+  # Bucket to host the website files
   S3Bucket:
     Type: 'AWS::S3::Bucket'
     Properties:
@@ -19,7 +19,7 @@ Resources:
         ErrorDocument: 'index.html'
         IndexDocument: 'index.html'
 
-  # Configure the bucket as a CloudFront Origin
+  # BucketPolicy to work as a CloudFront Origin
   ReadPolicy:
     Type: 'AWS::S3::BucketPolicy'
     Properties:
@@ -31,9 +31,8 @@ Resources:
             Resource: !Sub 'arn:aws:s3:::${S3Bucket}/*'
             Principal:
               CanonicalUser: !GetAtt CloudFrontOriginAccessIdentity.S3CanonicalUserId
-            # Principal: '*'
 
-  # Configure Access to CloudFront
+  # CloudFront OAI
   CloudFrontOriginAccessIdentity:
     Type: 'AWS::CloudFront::CloudFrontOriginAccessIdentity'
     Properties:
@@ -50,13 +49,13 @@ Resources:
           HostedZoneId: !Ref HostedZoneId
       ValidationMethod: DNS
 
-  # Configure CloudFront
+  # CloudFront Distribution
   CloudFrontDistribution:
     Type: 'AWS::CloudFront::Distribution'
     Properties:
       DistributionConfig:
         CustomErrorResponses:
-          - ErrorCode: 403 # not found
+          - ErrorCode: 403
             ResponseCode: 404
             ResponsePagePath: '/index.html'
         DefaultCacheBehavior:
@@ -69,16 +68,15 @@ Resources:
             - HEAD
             - OPTIONS
           Compress: true
-          DefaultTTL: 3600 # in seconds
+          DefaultTTL: 3600
           ForwardedValues:
             Cookies:
               Forward: none
             QueryString: false
-          MaxTTL: 86400 # in seconds
-          MinTTL: 60 # in seconds
+          MaxTTL: 86400
+          MinTTL: 60
           TargetOriginId: s3origin
           ViewerProtocolPolicy: 'allow-all'
-        # This DefaultRootObject configuration is not enough.
         DefaultRootObject: 'index.html'
         Enabled: true
         HttpVersion: http2
@@ -95,31 +93,29 @@ Resources:
           AcmCertificateArn: !Ref SSLCertificate
           MinimumProtocolVersion: 'TLSv1'
 
-  # Route53 A alias Record to cloudfront distribution
+  # Route53 A alias Record to CloudFront Distribution
   Route53A:
     Type: AWS::Route53::RecordSet
     Properties:
       Name: !Ref AppUrl
-      Comment: 'Created by CloudFormation'
       Type: A
       HostedZoneId: !Ref HostedZoneId
       AliasTarget:
         DNSName: !GetAtt CloudFrontDistribution.DomainName
         HostedZoneId: Z2FDTNDATAQYW2 # CloudFront HostedZoneId
 
-  # Route53 AAAA alias Record to cloudfront distribution
+  # Route53 AAAA alias Record to CloudFront Distribution
   Route53AAAA:
     Type: AWS::Route53::RecordSet
     Properties:
       Name: !Ref AppUrl
-      Comment: 'Created by CloudFormation'
       Type: AAAA
       HostedZoneId: !Ref HostedZoneId
       AliasTarget:
         DNSName: !GetAtt CloudFrontDistribution.DomainName
         HostedZoneId: Z2FDTNDATAQYW2 # CloudFront HostedZoneId
 
-  # Create an IAM user with Access Keys to enable automated deployment of the website to this bucket
+  # IAM user and Access Key to be used by GitHub
   PublishUser:
     Type: 'AWS::IAM::User'
     Properties:
@@ -139,18 +135,21 @@ Resources:
       UserName: !Ref PublishUser
 
 Outputs:
+  AccessKeyId:
+    Description: 'Publisher Access Key'
+    Value: !Ref PublishCredentials
+  AccessKeySecret:
+    Description: 'Publisher Secret Key'
+    Value: !GetAtt PublishCredentials.SecretAccessKey
+  AppDomain:
+    Description: 'Application Domain'
+    Value: !Ref AppUrl
   Bucket:
     Description: 'S3 Bucket Name'
     Value: !Ref S3Bucket
   BucketUrl:
     Description: 'S3 Bucket Url'
     Value: !GetAtt 'S3Bucket.WebsiteURL'
-  AccessKeyId:
-    Description: 'S3 Access Key'
-    Value: !Ref PublishCredentials
-  AccessKeySecret:
-    Description: 'S3 Secret Key'
-    Value: !GetAtt PublishCredentials.SecretAccessKey
   DistributionId:
     Description: 'CloudFront Distribution ID'
     Value: !Ref CloudFrontDistribution

@@ -24,7 +24,7 @@ body > canvas {
     display: flex;
 }
 
-.train-form, .train {
+.train-form, .train, .form {
     border: 1px solid blue;
     border-radius: 5px;
     padding: 5px;

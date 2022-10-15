@@ -1,5 +1,6 @@
 <template>
     <div class="flex-column">
+        <button @click="clearTracks">Clear Tracks</button>
         <button @click="newTrainForm = !newTrainForm">New Train</button>
         <train-form
             v-show="newTrainForm"
@@ -8,12 +9,18 @@
             :scene="scene"
         ></train-form>
 
-        <button @click="viewJsonTracks = !viewJsonTracks">Import/Export JSON</button>
-        <div v-show="viewJsonTracks" class="flex-column">
-            <label>Current Track Stuff</label>
-            <div class="exported-json">{{ exportedJson }}</div>
-            <textarea v-model="jsonTracks" class="json-tracks"></textarea>
-            <button @click="importJSON">Import</button>
+        <button @click="viewTrackLib = !viewTrackLib">{{viewTrackLib ? 'Hide' : 'Show'}} Track Lib</button>
+        <div v-show="viewTrackLib" class="form">
+            <track-lib
+                :tracks="trackLib"
+                @loadTrack="importTrackFromLib"
+            ></track-lib>
+        </div>
+
+        <button @click="viewJsonTracks = !viewJsonTracks">Import JSON</button>
+        <div v-show="viewJsonTracks" class="flex-column form">
+            <input type="file" name="jsonTrackFile" id="jsonTrackFile" ref="jsonTrackFile">
+            <button @click="importTrackFromFile">Import</button>
         </div>
 
         <button @click="trackEditor = !trackEditor">Track Editor</button>
@@ -32,6 +39,8 @@
             @semaphoreSaved="addSemaphore"
             @removeSemaphore="removeSemaphore"
         ></track-editor>
+
+        <br><br>
 
         <button @click="trainControls = !trainControls">Train Controls</button>
         <div v-show="trainControls" class="flex-column">
@@ -60,6 +69,7 @@ import { Semaphore } from "./components/semaphore";
 import TrainMonitor from "./components/TrainMonitor.vue";
 import TrainForm from "./components/TrainForm.vue";
 import TrackEditor from "./components/TrackEditor.vue";
+import TrackLib from "./components/TrackLib.vue";
 
 export default {
     name: "App",
@@ -67,15 +77,16 @@ export default {
     components: {
         TrainMonitor,
         TrainForm,
-        TrackEditor
+        TrackEditor,
+        TrackLib,
     },
 
     data: function () {
         return {
             config: {
                 type: global.Phaser.AUTO,
-                width: 1080,
-                height: 920,
+                width: 1200,
+                height: 900,
                 // backgroundColor: '#2d2d2d',
                 backgroundColor: "#c6c6c6",
                 parent: "phaser-example",
@@ -101,12 +112,13 @@ export default {
             semaphores: [],
             selectedTrain: -1,
             tracks: [],
+            trackLib: [],
             junctions: [],
             trackEditor: false,
             newTrainForm: false,
             trainControls: false,
             viewJsonTracks: false,
-            jsonTracks: "",
+            viewTrackLib: false,
             scene: null,
             factory: null,
             graphics: null,
@@ -122,8 +134,7 @@ export default {
             self.scene = scene;
             self.factory = factory;
             self.graphics = graphics;
-            self.jsonTracks = JSON.stringify(self.scene.cache.json.get('track1'));
-            self.importJSON();
+            self.trackLib.push(self.scene.cache.json.get('track1'));
         }, 1000);
     },
 
@@ -194,8 +205,17 @@ export default {
             }
         },
 
-        drawTracks: function () {
+        clearTracks: function () {
+            this.tracks = [];
+            if (this.semaphores.length) {
+                this.semaphores.forEach(semaphore => semaphore.clear())
+            }
+            this.semaphores = [];
+            this.junctions = [];
             graphics.clear();
+        },
+
+        drawTracks: function () {
             graphics.lineStyle(1, 0x000000, 1);
             this.tracks.forEach((track) => {
                 track.path.draw(graphics);
@@ -246,45 +266,61 @@ export default {
             }
         },
 
-        importJSON: function () {
-            this.tracks = [];
-            this.semaphores = [];
-            this.junctions = [];
-            let parsed = JSON.parse(this.jsonTracks);
-            parsed.tracks.forEach((track, index) => {
-                let trackObj = new Track(new global.Phaser.Curves.Path(track.path));
-                trackObj.setName(track.name ? track.name : "T" + index);
-                this.tracks.push(trackObj);
-            });
-            parsed.semaphores.forEach((semaphore) => {
-                let semObj = new Semaphore(this.scene);
-                semaphore.detectors.forEach(detector => {
-                    semObj.newDetector(detector.x, detector.y);
-                });
-                semaphore.lights.forEach(light => {
-                    semObj.newTrafficLight(light.x, light.y)
-                });
-                this.semaphores.push(semObj);
-            });
-            parsed.junctions.forEach((junction) => {
-                let junctionObj = {
-                    from: null,
-                    to: null,
-                };
-                for (let x = 0; x < this.tracks.length; x++) {
-                    if (junction.from === this.tracks[x].name) {
-                        junctionObj.from = this.tracks[x];
+        importTrackFromLib: function (index) {
+            this.importJSON(this.trackLib[index])
+        },
+
+        importTrackFromFile: function () {
+            let self = this;
+            for(let i = 0; i < this.$refs.jsonTrackFile.files.length; i++) {
+                this.$refs.jsonTrackFile.files[i].text().then(
+                    jsonTrack => {
+                        self.importJSON(JSON.parse(jsonTrack))
                     }
-                    if (junction.to === this.tracks[x].name) {
-                        junctionObj.to = this.tracks[x];
+                )
+            }
+        },
+
+        importJSON: function (parsed) {
+            if (parsed.branches) {
+                parsed.branches.forEach((track, index) => {
+                    let trackObj = new Track(new global.Phaser.Curves.Path(track.path));
+                    trackObj.setName(track.name ? track.name : "T" + index);
+                    this.tracks.push(trackObj);
+                });
+            }
+            if (parsed.semaphores) {
+                parsed.semaphores.forEach((semaphore) => {
+                    let semObj = new Semaphore(this.scene);
+                    semaphore.detectors.forEach(detector => {
+                        semObj.newDetector(detector.x, detector.y);
+                    });
+                    semaphore.lights.forEach(light => {
+                        semObj.newTrafficLight(light.x, light.y)
+                    });
+                    this.semaphores.push(semObj);
+                });
+            }
+            if (parsed.junctions) {
+                parsed.junctions.forEach((junction) => {
+                    let junctionObj = {
+                        from: null,
+                        to: null,
+                    };
+                    for (let x = 0; x < this.tracks.length; x++) {
+                        if (junction.from === this.tracks[x].name) {
+                            junctionObj.from = this.tracks[x];
+                        }
+                        if (junction.to === this.tracks[x].name) {
+                            junctionObj.to = this.tracks[x];
+                        }
                     }
-                }
-                if (junctionObj.from && junctionObj.to) {
-                    this.junctions.push(junctionObj);
-                }
-            });
+                    if (junctionObj.from && junctionObj.to) {
+                        this.junctions.push(junctionObj);
+                    }
+                });
+            }
             this.drawTracks();
-            this.jsonTracks = "";
         },
 
         liveSemaphores: function () {

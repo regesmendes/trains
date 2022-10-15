@@ -90,4 +90,15 @@ export class Semaphore {
             })
         }
     }
+
+    clear = function () {
+        this.trafficLights.forEach(trafficLight => {
+            trafficLight.light.destroy();
+        });
+        this.detectors.forEach(detector => {
+            detector.detector.destroy();
+        });
+        this.trafficLights = []
+        this.detectors = []
+    }
 }

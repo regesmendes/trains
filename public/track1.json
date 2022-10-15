@@ -1,5 +1,6 @@
 {
-    "tracks": [
+    "name": "Default Track",
+    "branches": [
         {
             "name": "Main Station L1",
             "path": {
@@ -8,7 +9,7 @@
                     {
                         "type": "LineCurve",
                         "points": [
-                             300,
+                            300,
                             100,
                             700,
                             100

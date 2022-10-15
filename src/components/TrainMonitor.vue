@@ -73,9 +73,9 @@ export default {
 
     computed: {
         availableTracks: function () {
-            let currentLocation = this.train.getLocation()
-            let normal = this.junctions.filter(junction => junction.from.name === currentLocation).map(dest => dest.to.name)
-            let reverse = this.junctions.filter(junction => junction.to.name === currentLocation).map(dest => dest.from.name + ' (rev)')
+            let location = this.train.paths[this.train.paths.length -1].name
+            let normal = this.junctions.filter(junction => junction.from.name === location).map(dest => dest.to.name)
+            let reverse = this.junctions.filter(junction => junction.to.name === location).map(dest => dest.from.name + ' (rev)')
             return [...normal, ...reverse]
         }
     },

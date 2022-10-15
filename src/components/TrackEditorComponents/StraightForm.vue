@@ -58,7 +58,6 @@ export default {
 
     methods: {
         drawLine: function () {
-            console.log(this.origin.x, this.origin.y, this.straight.x, this.straight.y)
             let node = {
                 type: "LineCurve",
                 points: [

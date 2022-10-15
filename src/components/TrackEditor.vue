@@ -128,6 +128,8 @@ export default {
                 x: parseInt(x - this.cursorOffset.x),
                 y: parseInt(y - this.cursorOffset.y)
             };
+            this.newTrack.x = position.x
+            this.newTrack.y = position.y
             this.positionCursor(position);
         },
 
@@ -151,11 +153,11 @@ export default {
         drawLine: function (line) {
             this.positionHistory.push([this.newTrack.x, this.newTrack.y]);
             this.newTrack.track.curves.push(line);
-            this.newTrack.x = line.x;
-            this.newTrack.y = line.y;
+            this.newTrack.x = line.points[line.points.length -2];
+            this.newTrack.y = line.points[line.points.length -1];
             let track = new global.Phaser.Curves.Path(this.newTrack.track);
             track.draw(this.graphics);
-            this.positionCursor();
+            this.positionCursor(this.newTrack);
         },
 
         drawEllipse: function (curve) {
@@ -226,8 +228,8 @@ export default {
             }
             if (this.active) {
                 this.trackCursor = this.factory.polygon(
-                    position ? position.x : this.newTrack.x,
-                    position ? position.y : this.newTrack.y,
+                    position && position.x ? position.x : this.newTrack.x,
+                    position && position.y ? position.y : this.newTrack.y,
                     [0, 0, 0, 5, 5, 5, 5, 0],
                     0xff0000
                 );
