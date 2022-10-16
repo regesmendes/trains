@@ -74,7 +74,7 @@ var graphics = null;
 var factory = null;
 var scene = null;
 
-import { Track } from './components/track';
+import { Branch } from './components/branch';
 import { Semaphore } from "./components/semaphore";
 import TrainMonitor from "./components/TrainMonitor.vue";
 import TrainForm from "./components/TrainForm.vue";
@@ -219,14 +219,14 @@ export default {
         },
 
         drawTracks: function () {
-            this.tracks.forEach((track) => {
-                graphics.lineStyle(1, track.getColorInt(), 1);
-                track.path.draw(graphics);
+            this.tracks.forEach((branch) => {
+                graphics.lineStyle(1, branch.getColorInt(), 1);
+                branch.path.draw(graphics);
             });
         },
 
-        addTrack: function (track) {
-            this.tracks.push(track);
+        addTrack: function (branch) {
+            this.tracks.push(branch);
         },
 
         addSemaphore: function (position) {
@@ -287,15 +287,15 @@ export default {
         importJSON: function (parsed) {
             if (parsed.branches) {
                 parsed.branches.forEach((track, index) => {
-                    let trackObj = new Track();
-                    trackObj.setPathDefinition(track.path);
-                    trackObj.setPath(new global.Phaser.Curves.Path(track.path));
-                    trackObj.setName(track.name ? track.name : "T" + index);
-                    trackObj.setId(this.tracks.length + 1);
+                    let branch = new Branch();
+                    branch.setPathDefinition(track.path);
+                    branch.setPath(new global.Phaser.Curves.Path(track.path));
+                    branch.setName(track.name ? track.name : "T" + index);
+                    branch.setId(this.tracks.length + 1);
                     if (track.color) {
-                        trackObj.setColor(track.color);
+                        branch.setColor(track.color);
                     }
-                    this.tracks.push(trackObj);
+                    this.tracks.push(branch);
                 });
             }
             if (parsed.semaphores) {

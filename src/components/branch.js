@@ -1,4 +1,4 @@
-export class Track {
+export class Branch {
     id = 0;
     name = 'NoName Track';
     color = '#000000';
