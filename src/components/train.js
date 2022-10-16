@@ -86,7 +86,6 @@ export class Train {
         // distance tolerance, the faster it moves, the more tolerance is required.
         let tolerance = Math.max(this.speed, 2)
 
-        this.reached = true
         this.cars.forEach((car, index) => {
             if (car.body) {
                 let target = this.carPosition(index)
@@ -96,7 +95,9 @@ export class Train {
                     target.x,
                     target.y
                 )
-                this.reached = this.reached && distance < tolerance
+                if (index === 0) {
+                    this.reached = distance < tolerance
+                }
 
                 if (this.reached) {
                     if (this.debug) console.log('car reset: ', index, target.x, target.y, car.body.speed)
