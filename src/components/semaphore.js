@@ -17,7 +17,7 @@ export class Semaphore {
         let detector = {
             x: x,
             y: y,
-            detector: this.scene.add.circle(x, y, 10) // .setStrokeStyle(1, 0xffff00)
+            detector: this.scene.add.circle(x, y, 10)
         }
         this.detectors.push(detector)
     }
@@ -35,6 +35,14 @@ export class Semaphore {
             light: this.scene.add.circle(x, y, 5).setFillStyle(this.getLightColor())
         }
         this.trafficLights.push(light)
+    }
+
+    showDetector = function (detector, color = 0xffff00) {
+        detector.detector.setStrokeStyle(1, color)
+    }
+
+    hideDetector = function (detector) {
+        detector.detector.setStrokeStyle(0, 0x000000)
     }
 
     getLightColor = function () {

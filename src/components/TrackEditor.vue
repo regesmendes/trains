@@ -1,35 +1,39 @@
 <template>
     <div class="track-editor flex-column">
-        <div>
-            <label>Current position:</label>
-            <div>{{ newTrack.x }}, {{ newTrack.y }}</div>
-        </div>
-        <div>
-            <button @click="positionCursor(newTrack)">Show Cursor</button>
-            <button @click="callibratingClick = !callibratingClick">{{callibratingClick ? 'Click on the red dot...' : 'Callibrate' }}</button>
-        </div>
-
-        <straight-form
-            :origin="trackCursor"
-            @undoLastAction="undoLastAction"
-            @drawTrack="drawLine"
-        ></straight-form>
-
-        <curve-form
-            :origin="trackCursor"
-            @undoLastAction="undoLastAction"
-            @drawTrack="drawEllipse"
-        ></curve-form>
-
-        <div class="track-editor flex-column">
-            <label>Save track</label>
+        <!-- branches -->
+        <div class="form flex-column">
+            <div>New Branch</div>
             <div>
-                <label for="trackName">Name</label>
-                <input type="text" id="trackName" v-model="newTrack.name" />
+                <label>Current position:</label>
+                <div>{{ newTrack.x }}, {{ newTrack.y }}</div>
             </div>
             <div>
-                <button @click="saveTrack">Done</button>
-                <button @click="cancelTrack">Cancel</button>
+                <button @click="positionCursor(newTrack)">Show Cursor</button>
+                <button @click="callibratingClick = !callibratingClick">{{callibratingClick ? 'Click on the red dot...' : 'Callibrate' }}</button>
+            </div>
+
+            <straight-form
+                :origin="trackCursor"
+                @undoLastAction="undoLastAction"
+                @drawTrack="drawLine"
+            ></straight-form>
+
+            <curve-form
+                :origin="trackCursor"
+                @undoLastAction="undoLastAction"
+                @drawTrack="drawEllipse"
+            ></curve-form>
+
+            <div class="track-editor flex-column">
+                <label>Save Branch</label>
+                <div>
+                    <label for="trackName">Name</label>
+                    <input type="text" id="trackName" v-model="newTrack.name" />
+                </div>
+                <div>
+                    <button @click="saveTrack">Done</button>
+                    <button @click="cancelTrack">Cancel</button>
+                </div>
             </div>
         </div>
 

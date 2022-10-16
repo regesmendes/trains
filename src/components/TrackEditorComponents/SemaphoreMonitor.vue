@@ -25,7 +25,8 @@
                 >
                     <div>
                         <div>({{ detector.x }}, {{ detector.y }})</div>
-                        <div @click="$emit('positionCursor', detector)" class="cursor-pointer">🔎</div>
+                        <div @click="$emit('positionCursor', detector); semaphore.showDetector(detector);" class="cursor-pointer">🔎</div>
+                        <div @click="semaphore.hideDetector(detector)" class="cursor-pointer">☑</div>
                         <div @click="removeDetector(detector, semaphoreIndex)" class="cursor-pointer">🞮</div>
                     </div>
                 </li>
@@ -68,11 +69,13 @@ export default {
 
     methods: {
         newSemaphore: function () {
-            let semaphore = {
-                x: this.origin.x,
-                y: this.origin.y
+            if (this.origin) {
+                let semaphore = {
+                    x: this.origin.x,
+                    y: this.origin.y
+                }
+                this.$emit('semaphoreSaved', semaphore);
             }
-            this.$emit('semaphoreSaved', semaphore);
         },
 
         removeSemaphore: function (index) {
