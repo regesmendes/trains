@@ -3,9 +3,17 @@
         <!-- branches -->
         <div class="form flex-column">
             <div>New Branch</div>
-            <div>
+            <div class="flex-column">
                 <label>Current position:</label>
-                <div>{{ newTrack.x }}, {{ newTrack.y }}</div>
+                <!-- <div>{{ newTrack.x }}, {{ newTrack.y }}</div> -->
+                <div class="flex">
+                    <label>x: </label>
+                    <input type="number" v-model="newTrack.x">
+                </div>
+                <div class="flex">
+                    <label>y: </label>
+                    <input type="number" v-model="newTrack.y">
+                </div>
             </div>
             <div>
                 <button @click="positionCursor(newTrack)">Show Cursor</button>

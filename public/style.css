@@ -20,6 +20,7 @@ body > canvas {
     flex-flow: column;
 }
 
+.flex,
 .flex-column > * {
     display: flex;
 }
